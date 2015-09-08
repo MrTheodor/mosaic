@@ -1,7 +1,21 @@
 from mpi4py import MPI
 import flickr_scraper
 from PIL import Image
-import scipy
+import scipy, threading
+
+class FetcherThread(threading.Thread):
+    def __init__(self, fetcher, result_buf, result_lock):
+        threading.Thread.__init__(self)
+        self.fetcher = fetcher
+        self.results = result_buf
+        self.results_lock = result_lock
+
+    def run(self):
+        data = self.fetcher()
+        self.results_lock.acquire()
+        self.results.append(data[0])
+        self.results_lock.release()
+        return
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -32,8 +46,19 @@ def process(pars):
         Compacts = []
         urls = fs.scrapeTag(tag, per_page, page=page) 
         #print "tag {} scraped for page {}".format(tag, page)
-        
-        files = fs.fetchFiles(urls[rank-1 : per_page : NScrapers])
+
+        files = []
+        files_lock = threading.Lock()
+        threads = []
+        for url in urls:
+            func = lambda: fs.fetchFiles([url])
+            t = FetcherThread(func, files, files_lock)
+            threads.append(t)
+            t.start()
+        while len(threads) != 0:
+            threads[0].join()
+            threads.pop(0)
+        # files = fs.fetchFiles(urls[rank-1 : per_page : NScrapers])
         ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
         #print "files fetched for page {}".format(page)
         for f in range(len(files)):
