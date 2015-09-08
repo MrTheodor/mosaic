@@ -94,6 +94,7 @@ def process(pars):
             for i in range(len(arrs)):
                 print "added a photo at index {}".format(ids[i])
                 arrsKeep[ids[i]] = arrs[i]
+                print arrsKeep[ids[i]]
         for step in range(NPlacers*NScrapers):
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
