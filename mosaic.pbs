@@ -1,6 +1,7 @@
 #!/bin/bash
 #PBS -l nodes=9
 #node1+node2+node3+node4+node5
+# execute with "qsub mosaic.pbs"
 
 cd $PBS_O_WORKDIR
 
