@@ -50,7 +50,7 @@ def process(pars):
         files = []
         files_lock = threading.Lock()
         threads = []
-        for url in urls:
+        for url in urls[rank-1 : per_page : NScrapers]:
             func = lambda: fs.fetchFiles([url])
             t = FetcherThread(func, files, files_lock)
             threads.append(t)
