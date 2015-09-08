@@ -46,6 +46,8 @@ class FetcherPool(object):
         self.fetcher = fetcher
         self.urls = urls
         self.nbthreads = poolsize
+        if (len(self.urls) < self.nbthreads):
+            self.nbthreads = len(self.urls))
         self.results = []
         self.res_lock = threading.Lock()
         self.threads = []
