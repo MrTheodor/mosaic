@@ -20,7 +20,6 @@ def process(pars):
     print "Node {} received params from Master".format(rank)
     pm = scraperPars['pm']
     tag = scraperPars['tag']
-    pages = scraperPars['pages']
 
     fs = flickr_scraper.flickrScraper()
     

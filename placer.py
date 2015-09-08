@@ -6,6 +6,8 @@ def process(pars):
     NPlacers = pars['NPlacers']
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
+    pages = pars['pages']
+
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -50,9 +52,9 @@ def process(pars):
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status) # N.B. This is "scraperResForPlacer" and NOT "scraperResForMaster"
             #print "Placer node {} received ids at page {}".format(rank, page), scraperRes['ids']
             Compacts = scraperRes['Compacts']
+            newSources = []
 
 	    # for each set of received files, see if any are better matches to the existing ones
-	    # send the master node the result
             for f in range(len(Compacts)):
                 Compact = Compacts[f]
                 for t in range(TotalTilesPerNode):
@@ -62,5 +64,6 @@ def process(pars):
                         newSources.append(whichSources[t])
                         Distances[t] = Distance
                         print "placed photo {} at position {}".format(whichSources[t],t)
-            placerRes = {'whichSources': whichSources, 'placer': rank}
+            placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
+	    # send the master node the result
             comm.send(placerRes, dest=0, tag=4)

@@ -1,0 +1,7 @@
+#!/bin/bash
+#PBS -l nodes=9
+#node1+node2+node3+node4+node5
+
+cd $PBS_O_WORKDIR
+
+mpiexec -np 9 -machinefile $PBS_NODEFILE python main.py NScrapers 4 NPlacers 4 &> log
