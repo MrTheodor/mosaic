@@ -5,4 +5,4 @@
 
 cd $PBS_O_WORKDIR
 
-mpiexec -np 9 -machinefile $PBS_NODEFILE python main.py NScrapers 4 NPlacers 4 &> log
+mpiexec -np 9 -machinefile $PBS_NODEFILE python main.py NScrapers 2 NPlacers 2 per_page 10 &> log
