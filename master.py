@@ -8,6 +8,7 @@ def process(pars):
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
     pages = pars['pages']
+    MaxTilesVert = pars['MaxTilesVert']
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -24,7 +25,6 @@ def process(pars):
 
 #%% adjust the image to have the correct shape (aspect ratio) for turning it into a mosaic
     PixPerTile = scipy.array((75,75))
-    MaxTilesVert = 20
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
     TargetImg = Image.open('./KWM18333.JPG')
@@ -49,11 +49,27 @@ def process(pars):
 #%% reduce CroppedArr to NPlacers NodeArrs
     NodeHeightInCroppedArr = float(TargetSize[1])/NPlacers
     sections = scipy.array(scipy.arange(NodeHeightInCroppedArr, TargetSize[1], NodeHeightInCroppedArr), dtype=int)
-    NodeArrs = scipy.split(CroppedArr, sections, axis=0) # each tile in the image
+    NodeArrs = scipy.split(CroppedArr, sections, axis=0) 
 
 #%% send each of the placers a piece of the picture
     for placer in range(NPlacers):
         comm.send(NodeArrs[placer], dest=1+NScrapers+placer, tag=1)
+
+#%% create the final image and divide it into pieces for the placers to     FinalArr = CroppedArr.copy()
+# now the division has to be accurate!
+    FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype=int)
+    NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
+
+    NodeTiless = []
+    for NodeFinalArr in NodeFinalArrs:
+        NodeTiles = []
+        VertSplitArrs = scipy.split(NodeFinalArr, Tiles[0], axis=1) 
+        for VertSplitArr in VertSplitArrs:
+            print ":", Tiles[1], NPlacers
+            SplitArrs = scipy.split(VertSplitArr, Tiles[1]/NPlacers, axis=0)
+            for SplitArr in SplitArrs:
+                NodeTiles.append(SplitArr)
+        NodeTiless.append(NodeTiles)
 
 #%% listen to the placers' INTERMEDIATE results
 # this will be NPlacers*NScrapers*pages communications,
@@ -64,10 +80,30 @@ def process(pars):
 # as an outer loop, showing an updated intermediate result after each page
 # or possibly after a numer of pages, of course this loop could also go around 
 # the actual calling of the scraper and placers, to give some control
+    arrsKeep = {}
     for page in range(pages):
-        scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
+###
+### The stuff below is not necessarily in the correct order
+###
+        for scraper in range(1,1+NScrapers):
+            scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
+            arrs = scraperRes['arrs'] 
+            ids   = scraperRes['ids'] 
+            print "ids: ", ids
+            print "Master node received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(len(arrs), ids[0])
+            for i in range(len(arrs)):
+                print "added a photo at index {}".format(ids[i])
+                arrsKeep[ids[i]] = arrs[i]
         for step in range(NPlacers*NScrapers):
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
-            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
+            whichSources = placerRes['whichSources']
+            placer = placerRes['placer']
+            print "NodeTiless has length {}".format(len(NodeTiless))
+            for t in range(len(whichSources)):
+                print "whichSources[{}] = {}".format(t, whichSources[t])
+                NodeTiless[placer][t] = arrsKeep[whichSources[t]]
+            
+#            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
+        plt.imsave('mosaic.png', FinalArr)
 
     print "The master node reached the end of its career"

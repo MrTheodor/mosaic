@@ -35,12 +35,12 @@ def process(pars):
     whichSources = scipy.zeros((TotalTilesPerNode), dtype=int)
     Distances = scipy.ones((TotalTilesPerNode))*scipy.Inf # the quality of the current fit for each tile (put at infinity to start with)
     
-    TileWidthInCroppedArr = float(UnscaledWidth)/Tiles[0]
-    vertSections = scipy.array(scipy.arange(TileWidthInCroppedArr, UnscaledWidth-.5*TileWidthInCroppedArr, TileWidthInCroppedArr), dtype=int)
+    TileWidthInNodeArr = float(UnscaledWidth)/Tiles[0]
+    vertSections = scipy.array(scipy.arange(TileWidthInNodeArr, UnscaledWidth-.5*TileWidthInNodeArr, TileWidthInNodeArr), dtype=int)
     VertSplitArrs = scipy.split(NodeArr, vertSections, axis=1)
     for VertSplitArr in VertSplitArrs:
-        TileHeightInCroppedArr = float(VertSplitArr.shape[0])/Tiles[1]*NPlacers
-        horSections = scipy.array(scipy.arange(TileHeightInCroppedArr, VertSplitArr.shape[0]-.5*TileHeightInCroppedArr, TileHeightInCroppedArr), dtype=int)
+        TileHeightInNodeArr = float(VertSplitArr.shape[0])/Tiles[1]*NPlacers
+        horSections = scipy.array(scipy.arange(TileHeightInNodeArr, VertSplitArr.shape[0]-.5*TileHeightInNodeArr, TileHeightInNodeArr), dtype=int)
         SplitArrs = scipy.split(VertSplitArr, horSections, axis=0)
         for SplitArr in SplitArrs:
             TileArrs.append(SplitArr)
@@ -63,7 +63,7 @@ def process(pars):
                         whichSources[t] = page*per_page + f
                         newSources.append(whichSources[t])
                         Distances[t] = Distance
-                        print "placed photo {} at position {}".format(whichSources[t],t)
+#                        print "placed photo {} at position {}".format(whichSources[t],t)
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
             comm.send(placerRes, dest=0, tag=4)

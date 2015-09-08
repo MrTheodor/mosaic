@@ -28,6 +28,7 @@ def process(pars):
     
     #%%
     for page in range(pages):
+        arrs = []
         Compacts = []
         urls = fs.scrapeTag(tag, per_page, page=page) 
         #print "tag {} scraped for page {}".format(tag, page)
@@ -36,9 +37,11 @@ def process(pars):
         ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
         #print "files fetched for page {}".format(page)
         for f in range(len(files)):
-            Compacts.append(pm.compactRepresentation(scipy.array(Image.open(files[f]))))
+            arr = scipy.array(Image.open(files[f]))
+            arrs.append(arr)
+            Compacts.append(pm.compactRepresentation(arr))
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
-        scraperResForMaster  = {'Compacts': Compacts, 'files': files, 'ids': ids}
+        scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs, 'ids': ids}
         #print "Scraper node {} sent ids at page {}".format(rank, page), ids
         for placer in range(NPlacers):
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
