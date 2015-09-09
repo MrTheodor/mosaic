@@ -33,9 +33,9 @@ class FetcherThread(threading.Thread):
         while (not self.stopped):
             self.urlLock.acquire()
             while (self.url == None):
-                self.urlLock.wait()
                 if (self.stopped):
                     return
+                self.urlLock.wait()
             # print "Thread %d : downloading %s" % (self.my_id, self.url[-30:])
             data = self.fetcher(self.url)
             if (data == None):
@@ -46,6 +46,7 @@ class FetcherThread(threading.Thread):
             # print "Thread %d : finished downloading" % (self.my_id)
             self.url = None
             self.urlLock.release()
+        return
 
 
 class FetcherPool(object):
