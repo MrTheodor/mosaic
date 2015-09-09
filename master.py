@@ -9,6 +9,7 @@ def process(pars):
     per_page = pars['per_page']
     pages = pars['pages']
     MaxTilesVert = pars['MaxTilesVert']
+    fidelity = pars['fidelity']
     for key, value in pars.iteritems():
         print "{} is now {}".format(key, value)
 
@@ -18,7 +19,9 @@ def process(pars):
     status = MPI.Status()
    
     print "Master, node {} out of {}".format(rank, size) 
-    pm = photo_match.photoMatch()
+
+    pmPars = {'fidelity': fidelity}
+    pm = photo_match.photoMatch(pmPars)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
     scraperPars = {'pm': pm, 'tag': 'Art'}
