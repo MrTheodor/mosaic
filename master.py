@@ -32,7 +32,7 @@ def process(pars):
     PixPerTile = scipy.array((75,75))
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./KWM18333.JPG')
+    TargetImg = Image.open('./rainbowflag.png')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
