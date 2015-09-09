@@ -110,9 +110,6 @@ def process(pars):
 
     fs = flickr_scraper.flickrScraper()
     
-    filesKeep = {} # the files that actually need to be kept, will be filled after each search, 
-    # to keep certain files before they are disregarded in the new search
-    
     #%%
     for page in range(pages):
         urls = fs.scrapeTag(tag, per_page, page=page) 
