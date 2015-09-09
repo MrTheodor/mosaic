@@ -1,5 +1,7 @@
 import flickr
 import urllib
+from PIL import Image
+import scipy
 
 class flickrScraper(object):
     
@@ -32,3 +34,12 @@ class flickrScraper(object):
             file, mime = urllib.urlretrieve(url)
             files.append(file)
         return files
+
+    def fetchFileData(self, url):
+        try:
+            im = Image.open(urllib.urlretrieve(url)[0])
+            arr = scipy.array(im)
+        except:
+            # print "******ERRORS*********"
+            return None
+        return arr

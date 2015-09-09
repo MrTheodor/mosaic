@@ -1,7 +1,7 @@
 from mpi4py import MPI
 import flickr_scraper
 from PIL import Image
-import scipy, threading
+import scipy, threading, time
 
 class FetcherThread(threading.Thread):
     def __init__(self, threadID, fetcher, result_buf, result_lock):
@@ -30,9 +30,11 @@ class FetcherThread(threading.Thread):
             if (self.url == None):
                 continue
             # print "Thread %d : downloading %s" % (self.my_id, self.url[-30:])
-            data = self.fetcher([self.url])
+            data = self.fetcher(self.url)
+            if (data == None):
+                continue
             self.results_lock.acquire()
-            self.results.append(data[0])
+            self.results.append(data)
             self.results_lock.release()
             # print "Thread %d : finished downloading" % (self.my_id)
             self.urlLock.acquire()
@@ -76,6 +78,7 @@ class FetcherPool(object):
             if (t != None):
                 t.setUrl(url)
                 self.urls.pop(0)
+                print "Downloading: %d left ..." % (len(self.urls))
         self.freeThreads()
         # print "Deleted all download threads"
         return self.results
@@ -105,23 +108,22 @@ def process(pars):
     
     #%%
     for page in range(pages):
-        arrs = []
-        Compacts = []
         urls = fs.scrapeTag(tag, per_page, page=page) 
         print "tag {} scraped for page {}".format(tag, page)
 
-        poolsize = 10
-        fp = FetcherPool(fs.fetchFiles, urls[rank-1 : per_page : NScrapers],
+        poolsize = 50
+        fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
-        files = fp.fetchUrls()
+        arrs = fp.fetchUrls()
         ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
         print "files fetched for page {}".format(page)
-        for f in range(len(files)):
-            arr = scipy.array(Image.open(files[f]))
-            arrs.append(arr)
+        Compacts = []
+        for arr in arrs:
+            print arr.shape
             Compacts.append(pm.compactRepresentation(arr))
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
-        scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs, 'ids': ids}
+        scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
+                                'ids': ids}
         print "Scraper node {} sent ids at page {}".format(rank, page), ids
         for placer in range(NPlacers):
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
