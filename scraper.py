@@ -84,8 +84,9 @@ class FetcherPool(object):
                 t.setUrl(url)
                 self.urls.pop(0)
                 print "Downloading: %d left ..." % (len(self.urls))
+        print "Cleaning up threads ..."
         self.freeThreads()
-        # print "Deleted all download threads"
+        print "Deleted all download threads"
         return self.results
     
 def process(pars):

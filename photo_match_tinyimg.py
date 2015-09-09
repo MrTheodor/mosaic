@@ -7,6 +7,7 @@ Created on Fri Sep  4 22:54:26 2015
 
 import scipy
 from scipy import misc, ndimage
+import numpy as np
 
 class photoMatch(object):
     
@@ -26,7 +27,14 @@ class photoMatch(object):
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
-    def compactDistance(self, rep1, rep2):
+    def compactDistance_old(self, rep1, rep2):
+        print rep1.shape
+        print rep2.shape
         return scipy.sqrt(scipy.sum((rep1-rep2)**2, axis=None))
         
     
+    def compactDistance(self, rep1, rep2):
+        rep1_avg = np.mean(np.mean(rep1, axis=0), axis=0)
+        rep2_avg = np.mean(np.mean(rep2, axis=0), axis=0)
+        return scipy.sqrt(scipy.sum((rep1_avg - rep2_avg)**2))
+        
