@@ -9,6 +9,8 @@ def process(pars):
     per_page = pars['per_page']
     pages = pars['pages']
     MaxTilesVert = pars['MaxTilesVert']
+    for key, value in pars.iteritems():
+        print "{} is now {}".format(key, value)
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -57,15 +59,16 @@ def process(pars):
 
 #%% create the final image and divide it into pieces for the placers to     FinalArr = CroppedArr.copy()
 # now the division has to be accurate!
-    FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype=int)
+    FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype=scipy.uint8)
     NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
+    FinalImg = Image.fromarray(FinalArr, 'RGB')
+    FinalImg.save('mosaic_empty.png')
 
     NodeTiless = []
     for NodeFinalArr in NodeFinalArrs:
         NodeTiles = []
         VertSplitArrs = scipy.split(NodeFinalArr, Tiles[0], axis=1) 
         for VertSplitArr in VertSplitArrs:
-            print ":", Tiles[1], NPlacers
             SplitArrs = scipy.split(VertSplitArr, Tiles[1]/NPlacers, axis=0)
             for SplitArr in SplitArrs:
                 NodeTiles.append(SplitArr)
@@ -82,6 +85,7 @@ def process(pars):
 # the actual calling of the scraper and placers, to give some control
     arrsKeep = {}
     for page in range(pages):
+        print "page: ", page, " out of ", pages
 ###
 ### The stuff below is not necessarily in the correct order
 ###
@@ -89,22 +93,18 @@ def process(pars):
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
             ids   = scraperRes['ids'] 
-            print "ids: ", ids
             print "Master node received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(len(arrs), ids[0])
             for i in range(len(arrs)):
-                print "added a photo at index {}".format(ids[i])
                 arrsKeep[ids[i]] = arrs[i]
-                print arrsKeep[ids[i]]
         for step in range(NPlacers*NScrapers):
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
-            placer = placerRes['placer']
-            print "NodeTiless has length {}".format(len(NodeTiless))
+            placer = placerRes['placer']-(1+NScrapers)
             for t in range(len(whichSources)):
-                print "whichSources[{}] = {}".format(t, whichSources[t])
-                NodeTiless[placer][t] = arrsKeep[whichSources[t]]
+                NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
 #            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
-        plt.imsave('mosaic.png', FinalArr)
+        FinalImg = Image.fromarray(FinalArr, 'RGB')
+        FinalImg.save('mosaic{}.png'.format(page))
 
     print "The master node reached the end of its career"
