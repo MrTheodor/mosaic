@@ -13,7 +13,7 @@ def process(pars):
     size = comm.Get_size()
     status = MPI.Status()
    
-    print "Placer node {} out of {}".format(rank, size) 
+    print "Placer, node {} out of {}".format(rank, size) 
 
 #%% Receive some parameters
     placerPars = comm.recv(source=0, tag=0, status=status)

@@ -47,7 +47,7 @@ class FetcherPool(object):
         self.urls = urls
         self.nbthreads = poolsize
         if (len(self.urls) < self.nbthreads):
-            self.nbthreads = len(self.urls))
+            self.nbthreads = len(self.urls)
         self.results = []
         self.res_lock = threading.Lock()
         self.threads = []
@@ -91,7 +91,7 @@ def process(pars):
     size = comm.Get_size()
     status = MPI.Status()
    
-    print "Scraper node {} out of {}".format(rank, size) 
+    print "Scraper, node {} out of {}".format(rank, size) 
 
     scraperPars = comm.recv(source=0, tag=0, status=status)
     print "Node {} received params from Master".format(rank)
@@ -108,21 +108,21 @@ def process(pars):
         arrs = []
         Compacts = []
         urls = fs.scrapeTag(tag, per_page, page=page) 
-        #print "tag {} scraped for page {}".format(tag, page)
+        print "tag {} scraped for page {}".format(tag, page)
 
         poolsize = 10
         fp = FetcherPool(fs.fetchFiles, urls[rank-1 : per_page : NScrapers],
                          poolsize)
         files = fp.fetchUrls()
         ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
-        #print "files fetched for page {}".format(page)
+        print "files fetched for page {}".format(page)
         for f in range(len(files)):
             arr = scipy.array(Image.open(files[f]))
             arrs.append(arr)
             Compacts.append(pm.compactRepresentation(arr))
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs, 'ids': ids}
-        #print "Scraper node {} sent ids at page {}".format(rank, page), ids
+        print "Scraper node {} sent ids at page {}".format(rank, page), ids
         for placer in range(NPlacers):
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
         comm.send(scraperResForMaster, dest=0, tag=3)

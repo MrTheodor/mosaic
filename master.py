@@ -17,7 +17,7 @@ def process(pars):
     size = comm.Get_size()
     status = MPI.Status()
    
-    print "Master node {} out of {}".format(rank, size) 
+    print "Master, node {} out of {}".format(rank, size) 
     pm = photo_match.photoMatch()
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
