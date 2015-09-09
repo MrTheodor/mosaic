@@ -1,7 +1,7 @@
 from mpi4py import MPI
 from PIL import Image
 import scipy
-import photo_match_tinyimg as photo_match
+import photo_match_tinyimg2 as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -32,7 +32,7 @@ def process(pars):
     PixPerTile = scipy.array((75,75))
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./rainbowflag.png')
+    TargetImg = Image.open('./korneel_test.jpg')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)

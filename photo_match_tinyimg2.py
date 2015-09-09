@@ -28,11 +28,7 @@ class photoMatch(object):
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
     def compactDistance(self, rep1, rep2):
-        return scipy.sqrt(scipy.sum((rep1-rep2)**2, axis=None))
-        
-    
-    # def compactDistance(self, rep1, rep2):
-    #     rep1_avg = scipy.mean(scipy.mean(rep1, axis=0), axis=0)
-    #     rep2_avg = scipy.mean(scipy.mean(rep2, axis=0), axis=0)
-    #     return scipy.sqrt(scipy.sum((rep1_avg - rep2_avg)**2))
+        rep1_avg = scipy.mean(scipy.mean(rep1, axis=0), axis=0)
+        rep2_avg = scipy.mean(scipy.mean(rep2, axis=0), axis=0)
+        return scipy.sqrt(scipy.sum((rep1_avg - rep2_avg)**2))
         
