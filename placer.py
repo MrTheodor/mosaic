@@ -50,7 +50,7 @@ def process(pars):
     for page in range(pages):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status) # N.B. This is "scraperResForPlacer" and NOT "scraperResForMaster"
-            #print "Placer node {} received ids at page {}".format(rank, page), scraperRes['ids']
+            print "Placer, node {} received ids at page {}".format(rank, page)
             Compacts = scraperRes['Compacts']
             newSources = []
 

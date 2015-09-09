@@ -83,7 +83,7 @@ class FetcherPool(object):
             if (t != None):
                 t.setUrl(url)
                 self.urls.pop(0)
-                print "Downloading: %d left ..." % (len(self.urls))
+                #print "Downloading: %d left ..." % (len(self.urls))
         print "Cleaning up threads ..."
         self.freeThreads()
         print "Deleted all download threads"
@@ -129,7 +129,8 @@ def process(pars):
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
                                 'ids': ids}
-        print "Scraper node {} sent ids at page {}".format(rank, page), ids
         for placer in range(NPlacers):
+            print "Scraper, node {} sending to Placer {}".format(rank, placer)
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
         comm.send(scraperResForMaster, dest=0, tag=3)
+        print "Scraper node {} sent ids at page {}".format(rank, page)

@@ -23,8 +23,7 @@ for i in range(len(sys.argv[:])):
 
 if rank == 0:
     master.process(pars)
-else:
-    if rank < 1+pars['NScrapers']:
-        scraper.process(pars)
-    else:
-        placer.process(pars)
+elif rank < 1+pars['NScrapers']:
+    scraper.process(pars)
+elif rank < 1+pars['NScrapers']+pars['NPlacers']:
+    placer.process(pars)

@@ -64,8 +64,6 @@ def process(pars):
 # now the division has to be accurate!
     FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype=scipy.uint8)
     NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
-    FinalImg = Image.fromarray(FinalArr, 'RGB')
-    FinalImg.save('mosaic_empty.png')
 
     NodeTiless = []
     for NodeFinalArr in NodeFinalArrs:
@@ -103,11 +101,13 @@ def process(pars):
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
+            print "Master received result from placer node {}".format(placer)
             for t in range(len(whichSources)):
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
 #            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
         FinalImg = Image.fromarray(FinalArr, 'RGB')
         FinalImg.save('mosaic{}.png'.format(page))
+        print "Image saved after page {}".format(page)
 
     print "The master node reached the end of its career"
