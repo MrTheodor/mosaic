@@ -11,11 +11,14 @@ class FetcherThread(threading.Thread):
         self.results = result_buf
         self.results_lock = result_lock
         self.url = None
-        self.urlLock = threading.Lock()
+        self.urlLock = threading.Condition()
         self.stopped = False
     
     def stopThread(self):
         self.stopped = True
+        self.urlLock.acquire()
+        self.urlLock.notify()
+        self.urlLock.release()
     
     def getUrl(self):
         return self.url
@@ -23,12 +26,16 @@ class FetcherThread(threading.Thread):
     def setUrl(self, url):
         self.urlLock.acquire()
         self.url = url
+        self.urlLock.notify()
         self.urlLock.release()
     
     def run(self):
         while (not self.stopped):
-            if (self.url == None):
-                continue
+            self.urlLock.acquire()
+            while (self.url == None):
+                self.urlLock.wait()
+                if (self.stopped):
+                    return
             # print "Thread %d : downloading %s" % (self.my_id, self.url[-30:])
             data = self.fetcher(self.url)
             if (data == None):
@@ -37,10 +44,8 @@ class FetcherThread(threading.Thread):
             self.results.append(data)
             self.results_lock.release()
             # print "Thread %d : finished downloading" % (self.my_id)
-            self.urlLock.acquire()
             self.url = None
             self.urlLock.release()
-        return
 
 
 class FetcherPool(object):
@@ -54,11 +59,11 @@ class FetcherPool(object):
         self.res_lock = threading.Lock()
         self.threads = []
         for i in range(self.nbthreads):
+            tic = time.time()
             t = FetcherThread(i, self.fetcher, self.results, self.res_lock)
             t.start()
             self.threads.append(t)
-        # print "Thread pool length = %d" % (len(self.threads))
-
+    
     def getFreeThread(self):
         for t in self.threads:
             if (t.getUrl() == None):
@@ -111,7 +116,7 @@ def process(pars):
         urls = fs.scrapeTag(tag, per_page, page=page) 
         print "tag {} scraped for page {}".format(tag, page)
 
-        poolsize = 50
+        poolsize = 20
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
         arrs = fp.fetchUrls()
@@ -119,7 +124,6 @@ def process(pars):
         print "files fetched for page {}".format(page)
         Compacts = []
         for arr in arrs:
-            print arr.shape
             Compacts.append(pm.compactRepresentation(arr))
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
