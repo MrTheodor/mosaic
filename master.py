@@ -9,6 +9,7 @@ def process(pars):
     per_page = pars['per_page']
     pages = pars['pages']
     MaxTilesVert = pars['MaxTilesVert']
+    fidelity = pars['fidelity']
     for key, value in pars.iteritems():
         print "{} is now {}".format(key, value)
 
@@ -18,7 +19,9 @@ def process(pars):
     status = MPI.Status()
    
     print "Master, node {} out of {}".format(rank, size) 
-    pm = photo_match.photoMatch()
+
+    pmPars = {'fidelity': fidelity}
+    pm = photo_match.photoMatch(pmPars)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
     scraperPars = {'pm': pm, 'tag': 'Art'}
@@ -29,7 +32,7 @@ def process(pars):
     PixPerTile = scipy.array((75,75))
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./KWM18333.JPG')
+    TargetImg = Image.open('./rainbowflag.png')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
