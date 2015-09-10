@@ -36,10 +36,12 @@ class flickrScraper(object):
         return files
 
     def fetchFileData(self, url):
-        try:
-            im = Image.open(urllib.urlretrieve(url)[0])
-            arr = scipy.array(im)
-        except:
-            print "******ERRORS*********"
-            return None
+        arr = None
+        while arr == None:
+            try:
+                im = Image.open(urllib.urlretrieve(url)[0])
+                arr = scipy.array(im)
+            except:
+                # print "******ERRORS*********"
+                arr =  None
         return arr
