@@ -40,6 +40,6 @@ class flickrScraper(object):
             im = Image.open(urllib.urlretrieve(url)[0])
             arr = scipy.array(im)
         except:
-            # print "******ERRORS*********"
+            print "******ERRORS*********"
             return None
         return arr

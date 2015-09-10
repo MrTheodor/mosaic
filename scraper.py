@@ -60,7 +60,6 @@ class FetcherPool(object):
         self.res_lock = threading.Lock()
         self.threads = []
         for i in range(self.nbthreads):
-            tic = time.time()
             t = FetcherThread(i, self.fetcher, self.results, self.res_lock)
             t.start()
             self.threads.append(t)
@@ -72,22 +71,32 @@ class FetcherPool(object):
         return None
 
     def freeThreads(self):
+        i = 0
         while len(self.threads) != 0:
+            tic1 = time.time()
             self.threads[0].stopThread()
+            tic2 = time.time()
             self.threads[0].join()
+            tic3 = time.time()
             self.threads.pop(0)
+            tic4 = time.time()
+            print i, ": {:.2e},{:.2e},{:.2e}".format(tic2-tic1, tic3-tic2, tic2-tic1)
+            i+= 1
     
     def fetchUrls(self):
+        tic = time.time()
         while (len(self.urls) != 0):
             url = self.urls[0]
             t = self.getFreeThread()
             if (t != None):
                 t.setUrl(url)
                 self.urls.pop(0)
-                #print "Downloading: %d left ..." % (len(self.urls))
+                print "Downloading: %d left ..." % (len(self.urls))
+        print "Downloaded all files in (roughly) {} s".format(time.time()-tic)
         print "Cleaning up threads ..."
+        tic = time.time()
         self.freeThreads()
-        print "Deleted all download threads"
+        print "Deleted all download threads in (roughly) {} s".format(time.time()-tic)
         return self.results
     
 def process(pars):
@@ -115,10 +124,11 @@ def process(pars):
         urls = fs.scrapeTag(tag, per_page, page=page) 
         print "tag {} scraped for page {}".format(tag, page)
 
-        poolsize = 20
+        poolsize = 50
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
         arrs = fp.fetchUrls()
+        print "arrs has length {}".format(len(arrs))
         ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
         print "files fetched for page {}".format(page)
         Compacts = []
@@ -128,7 +138,29 @@ def process(pars):
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
                                 'ids': ids}
         for placer in range(NPlacers):
-            print "Scraper, node {} sending to Placer {}".format(rank, placer)
+            print "Scraper, node {} sending to Placer node {}".format(rank, 1+NScrapers+placer)
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
         comm.send(scraperResForMaster, dest=0, tag=3)
         print "Scraper node {} sent ids at page {}".format(rank, page)
+
+if __name__=="__main__":
+    import photo_match_tinyimg2 as photo_match
+	
+    print "testing the scraper Pool"
+    per_page = 100
+    rank = 1
+    NScrapers = 1
+    pm = photo_match.photoMatch
+    tag = 'Brugge'
+
+    fs = flickr_scraper.flickrScraper()
+    
+    #%%
+    for page in range(1):
+        urls = fs.scrapeTag(tag, per_page, page=page) 
+        print "tag {} scraped for page {}".format(tag, page)
+
+        poolsize = 20
+        fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
+                         poolsize)
+        arrs = fp.fetchUrls()

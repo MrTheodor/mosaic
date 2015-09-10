@@ -90,7 +90,8 @@ def process(pars):
 ###
 ### The stuff below is not necessarily in the correct order
 ###
-        for scraper in range(1,1+NScrapers):
+        for scraper in range(NScrapers):
+            print "Master node waiting for the {}th scraper".format(scraper)
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
             ids   = scraperRes['ids'] 
@@ -98,6 +99,7 @@ def process(pars):
             for i in range(len(arrs)):
                 arrsKeep[ids[i]] = arrs[i]
         for step in range(NPlacers*NScrapers):
+            print "Master waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(step, NPlacers*NScrapers)
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
