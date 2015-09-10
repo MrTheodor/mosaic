@@ -21,14 +21,16 @@ class photoMatch(object):
     def compactRepresentation(self, photo):
         if len(photo.shape) == 3: # must be NxNx3
             if photo.shape[2] == 3: # must be NxNx3
-                return scipy.misc.imresize(photo, self.compareSize)
+                # the array is cast to a SIGNED integer now, as we will be substracting 
+                # images from one another later in compactDistnace()
+                return scipy.array(scipy.misc.imresize(photo, self.compareSize), dtype=scipy.int16)
         return scipy.ones((self.compareSize[0], self.compareSize[1], 3))*scipy.NaN
         
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
     def compactDistance(self, rep1, rep2):
-        return scipy.sqrt(scipy.sum((rep1-rep2)**2, axis=None))
+        return scipy.sum((rep1-rep2)**2, axis=None)
         
     
     # def compactDistance(self, rep1, rep2):
