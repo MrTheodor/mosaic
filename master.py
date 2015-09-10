@@ -1,7 +1,7 @@
 from mpi4py import MPI
 from PIL import Image
 import scipy
-import photo_match_tinyimg2 as photo_match
+import photo_match_tinyimg as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
