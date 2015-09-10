@@ -10,7 +10,7 @@ def process(pars):
     NPlacers = pars['NPlacers']
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
-    pages = pars['pages']
+    iters = pars['iters']
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -27,17 +27,17 @@ def process(pars):
     fs = flickr_scraper.flickrScraper()
     
     #%%
-    for page in range(pages):
-        urls = fs.scrapeTag(tag, per_page, page=page) 
-        print "tag {} scraped for page {}".format(tag, page)
+    for iter in range(iters):
+        urls = fs.scrapeTag(tag, per_page, page=iter) 
+        print "tag {} scraped for iter {}".format(tag, iter)
 
         poolsize = 50
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
         arrs = fp.executeJobs()
-        print "arrs has length {}".format(len(arrs))
-        ids = page*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
-        print "files fetched for page {}".format(page)
+        #print "arrs has length {}".format(len(arrs))
+        ids = iter*per_page + scipy.arange(rank-1, per_page,  NScrapers, dtype=int)
+        print "files fetched for iter {}".format(iter)
         Compacts = []
         for arr in arrs:
             Compacts.append(pm.compactRepresentation(arr))
@@ -45,10 +45,10 @@ def process(pars):
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
                                 'ids': ids}
         for placer in range(NPlacers):
-            print "Scraper, node {} sending to Placer node {}".format(rank, 1+NScrapers+placer)
+            #print "Scraper, node {} sending to Placer node {}".format(rank, 1+NScrapers+placer)
             comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
         comm.send(scraperResForMaster, dest=0, tag=3)
-        print "Scraper node {} sent ids at page {}".format(rank, page)
+        print "Scraper node {} sent ids at iter {}".format(rank, iter)
 
 if __name__=="__main__":
     import photo_match_tinyimg2 as photo_match
@@ -63,9 +63,9 @@ if __name__=="__main__":
     fs = flickr_scraper.flickrScraper()
     
     #%%
-    for page in range(1):
-        urls = fs.scrapeTag(tag, per_page, page=page) 
-        print "tag {} scraped for page {}".format(tag, page)
+    for iter in range(1):
+        urls = fs.scrapeTag(tag, per_page, iter=iter) 
+        print "tag {} scraped for iter {}".format(tag, iter)
 
         poolsize = 20
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],

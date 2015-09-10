@@ -6,7 +6,7 @@ def process(pars):
     NPlacers = pars['NPlacers']
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
-    pages = pars['pages']
+    iters = pars['iters']
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -22,7 +22,7 @@ def process(pars):
     TilesPerNode = placerPars['TilesPerNode']
     UnscaledWidth = placerPars['UnscaledWidth']
     pm = placerPars['pm']
-    pages = placerPars['pages']
+    iters = placerPars['iters']
     TotalTilesPerNode = scipy.prod(TilesPerNode)
 
 #%% Receive its bit of the target image
@@ -47,11 +47,11 @@ def process(pars):
             TileCompacts.append(pm.compactRepresentation(SplitArr))
 
 #%% listen to the scrapers for images place
-    for page in range(pages):
+    for iter in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
-            print "Placer, node {} waiting for ids at page {}".format(rank, page)
+            #print "Placer, node {} waiting for ids at iter {}".format(rank, iter)
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status) # N.B. This is "scraperResForPlacer" and NOT "scraperResForMaster"
-            print "Placer, node {} received ids at page {}".format(rank, page)
+            #print "Placer, node {} received ids at iter {}".format(rank, iter)
             Compacts = scraperRes['Compacts']
             newSources = []
 
@@ -61,7 +61,7 @@ def process(pars):
                 for t in range(TotalTilesPerNode):
                     Distance = pm.compactDistance(TileCompacts[t], Compact)
                     if Distance < Distances[t]:
-                        whichSources[t] = page*per_page + f
+                        whichSources[t] = iter*per_page + f
                         newSources.append(whichSources[t])
                         Distances[t] = Distance
 #                        print "placed photo {} at position {}".format(whichSources[t],t)

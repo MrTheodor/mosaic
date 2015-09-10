@@ -7,7 +7,7 @@ def process(pars):
     NPlacers = pars['NPlacers']
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
-    pages = pars['pages']
+    iters = pars['iters']
     MaxTilesVert = pars['MaxTilesVert']
     fidelity = pars['fidelity']
     for key, value in pars.iteritems():
@@ -33,7 +33,7 @@ def process(pars):
     PixPerTile = scipy.array((75,75))
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./KWM18333.JPG')
+    TargetImg = Image.open('./KWM24489.JPG')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
@@ -48,7 +48,7 @@ def process(pars):
     CroppedArr = scipy.array(CroppedImg)
 
 #%% send each placer some parameters
-    placerPars = {'TilesPerNode': TilesPerNode, 'UnscaledWidth': UnscaledWidth, 'Tiles': Tiles, 'pm': pm, 'pages': pages}
+    placerPars = {'TilesPerNode': TilesPerNode, 'UnscaledWidth': UnscaledWidth, 'Tiles': Tiles, 'pm': pm, 'iters': iters}
     for placer in range(NPlacers):
         comm.send(placerPars, dest=1+NScrapers+placer, tag=0)
     
@@ -77,17 +77,17 @@ def process(pars):
         NodeTiless.append(NodeTiles)
 
 #%% listen to the placers' INTERMEDIATE results
-# this will be NPlacers*NScrapers*pages communications,
+# this will be NPlacers*NScrapers*iters communications,
 # but all these communications require the same handling
 # i.e. it is required that the master node keeps a list of
 # the files that are needed in the final image
-# alternatively, we might want to use the iteration over the pages
-# as an outer loop, showing an updated intermediate result after each page
-# or possibly after a numer of pages, of course this loop could also go around 
+# alternatively, we might want to use the iteration over the iters
+# as an outer loop, showing an updated intermediate result after each iter
+# or possibly after a numer of iters, of course this loop could also go around 
 # the actual calling of the scraper and placers, to give some control
     arrsKeep = {}
-    for page in range(pages):
-        print "page: ", page, " out of ", pages
+    for iter in range(iters):
+        print "iter: ", iter, " out of ", iters
 ###
 ### The stuff below is not necessarily in the correct order
 ###
@@ -100,20 +100,22 @@ def process(pars):
             print "Master node received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(len(arrs), ids[0])
             for i in range(len(arrs)):
                 arrsKeep[ids[i]] = arrs[i]
+        print "Master now listening for placer results"
         for step in range(NPlacers*NScrapers):
-            print "Master waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(step, NPlacers*NScrapers)
+            #print "Master waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(step, NPlacers*NScrapers)
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
-            print "Master received result from placer node {}".format(placer)
+            #print "Master received result from placer node {}".format(placer)
             for t in range(len(whichSources)):
                 #print Compacts[whichSources[t]]
                 #print arrsKeep[whichSources[t]]
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
 #            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
+        print "Master finished listening to placer results"
         FinalImg = Image.fromarray(FinalArr, 'RGB')
-        FinalImg.save('mosaic{}.png'.format(page))
-        print "Image saved after page {}".format(page)
+        FinalImg.save('mosaic{}.png'.format(iter))
+        print "Image saved after iter {}".format(iter)
 
     print "The master node reached the end of its career"
