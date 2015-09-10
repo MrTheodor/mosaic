@@ -20,7 +20,7 @@ class photoMatch(object):
     def compactRepresentation(self, photo):
         if len(photo.shape) == 3: # must be NxNx3
             if photo.shape[2] == 3: # must be NxNx3
-                return scipy.misc.imresize(photo, self.compareSize).sum(axis=2)
+                return scipy.array(scipy.misc.imresize(photo, self.compareSize).sum(axis=2), dtype=scipy.int16)
 #        return scipy.misc.imresize(photo, self.compareSize)
         # greyscale images make life hard, let's ignore them for now
         return scipy.ones((self.compareSize[0], self.compareSize[1], 1))*scipy.NaN
@@ -28,7 +28,9 @@ class photoMatch(object):
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
+    # As everything is in integers, and the square root is monotonic,
+    # taking the square root of the squares' sum is simply moronic
     def compactDistance(self, rep1, rep2):
-        return scipy.sqrt(scipy.sum((rep1-rep2)**2, axis=None))
+        return scipy.sum((rep1-rep2)**2, axis=None)
         
     
