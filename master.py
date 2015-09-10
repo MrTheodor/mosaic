@@ -24,6 +24,7 @@ def process(pars):
     pm = photo_match.photoMatch(pmPars)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
+# TODO make multiple tags possible, and let the scrapers deal with them properly
     scraperPars = {'pm': pm, 'tag': 'Art'}
     for scraper in range(1,1+NScrapers):
 	comm.send(scraperPars, dest=scraper, tag=0)
@@ -94,6 +95,7 @@ def process(pars):
             print "Master node waiting for the {}th scraper".format(scraper)
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
+            Compacts = scraperRes['Compacts'] 
             ids   = scraperRes['ids'] 
             print "Master node received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(len(arrs), ids[0])
             for i in range(len(arrs)):
@@ -105,6 +107,8 @@ def process(pars):
             placer = placerRes['placer']-(1+NScrapers)
             print "Master received result from placer node {}".format(placer)
             for t in range(len(whichSources)):
+                #print Compacts[whichSources[t]]
+                #print arrsKeep[whichSources[t]]
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
 #            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
