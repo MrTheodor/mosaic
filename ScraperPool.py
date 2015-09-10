@@ -46,10 +46,10 @@ class ThreadPool(object):
         # Waiting to finish
         self.finiEvent.wait()
             
-        print "Gave everything out, waiting for threads to finish ..."
+        #print "Gave everything out, waiting for threads to finish ..."
         for t in self.threads:
             t.join()
-        print "Cleaned up threads!"
+        #print "Cleaned up threads!"
         return self.results
             
 
