@@ -1,31 +1,32 @@
 from mpi4py import MPI
 from PIL import Image
 import scipy
-import photo_match_tinyimg as photo_match
+import photo_match_tinyimg2 as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
     iters = pars['iters']
-    MaxTilesVert = pars['MaxTilesVert']
-    fidelity = pars['fidelity']
-    for key, value in pars.iteritems():
-        print "{} is now {}".format(key, value)
+    tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
     status = MPI.Status()
    
+    MaxTilesVert = pars['MaxTilesVert']
+    fidelity = pars['fidelity']
+    for key, value in pars.iteritems():
+        print "M{}: {} is now {}".format(rank, key, value)
+
     print "Master, node {} out of {}".format(rank, size) 
 
     pmPars = {'fidelity': fidelity}
     pm = photo_match.photoMatch(pmPars)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
-# TODO make multiple tags possible, and let the scrapers deal with them properly
-    scraperPars = {'pm': pm, 'tag': 'Art'}
+    scraperPars = {'pm': pm, 'tags': tags }
     for scraper in range(1,1+NScrapers):
 	comm.send(scraperPars, dest=scraper, tag=0)
 
@@ -87,35 +88,34 @@ def process(pars):
 # the actual calling of the scraper and placers, to give some control
     arrsKeep = {}
     for iter in range(iters):
-        print "iter: ", iter, " out of ", iters
+        print "M{}: iter: {} out of {} ".format(rank, iter,iters)
 ###
 ### The stuff below is not necessarily in the correct order
 ###
         for scraper in range(NScrapers):
-            print "Master node waiting for the {}th scraper".format(scraper)
+            print "M{}:  waiting for the {}th scraper".format(rank, scraper)
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
             Compacts = scraperRes['Compacts'] 
             ids   = scraperRes['ids'] 
-            print "Master node received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(len(arrs), ids[0])
+            print "M{}: received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(rank, len(arrs), ids[0])
             for i in range(len(arrs)):
                 arrsKeep[ids[i]] = arrs[i]
-        print "Master now listening for placer results"
+        print "M{}: now listening for placer results".format(rank)
         for step in range(NPlacers*NScrapers):
-            #print "Master waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(step, NPlacers*NScrapers)
+            #print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
-            #print "Master received result from placer node {}".format(placer)
+            #print "M{}: received result from placer node {}".format(rank, placer)
+            #print "M{}: received from {} the following list of Sources to use \n".format(rank, placerRes['placer']), placerRes['whichSources']
             for t in range(len(whichSources)):
-                #print Compacts[whichSources[t]]
-                #print arrsKeep[whichSources[t]]
+                print "M{}: At {} use source {}".format(rank, t, whichSources[t])
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
-#            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
-        print "Master finished listening to placer results"
+        print "M{}: finished listening to placer results".format(rank)
         FinalImg = Image.fromarray(FinalArr, 'RGB')
         FinalImg.save('mosaic{}.png'.format(iter))
-        print "Image saved after iter {}".format(iter)
+        print "M{}: Image saved after iter {}".format(rank, iter)
 
     print "The master node reached the end of its career"

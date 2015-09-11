@@ -13,11 +13,11 @@ def process(pars):
     size = comm.Get_size()
     status = MPI.Status()
    
-    print "Placer, node {} out of {}".format(rank, size) 
+    #print "Placer, node {} out of {}".format(rank, size) 
 
 #%% Receive some parameters
     placerPars = comm.recv(source=0, tag=0, status=status)
-    print "Placer {} received the placer parameters".format(rank)
+    print "P{}: received the placer parameters".format(rank)
     Tiles = placerPars['Tiles']
     TilesPerNode = placerPars['TilesPerNode']
     UnscaledWidth = placerPars['UnscaledWidth']
@@ -27,7 +27,7 @@ def process(pars):
 
 #%% Receive its bit of the target image
     NodeArr = comm.recv(source=0, tag=1, status=status)
-    print "Placer {} received its part of the image".format(rank)
+    print "P{}: received its part of the image".format(rank)
 
 #%% Divide the NodeArr into tiles
     TileArrs = [] # each tile in the image
@@ -49,10 +49,11 @@ def process(pars):
 #%% listen to the scrapers for images place
     for iter in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
-            #print "Placer, node {} waiting for ids at iter {}".format(rank, iter)
+            print "P{}: waiting for ids at iter {}".format(rank, iter)
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status) # N.B. This is "scraperResForPlacer" and NOT "scraperResForMaster"
-            #print "Placer, node {} received ids at iter {}".format(rank, iter)
+            print "P{}: received ids at iter {}".format(rank, iter)
             Compacts = scraperRes['Compacts']
+            ids = scraperRes['ids']
             newSources = []
 
 	    # for each set of received files, see if any are better matches to the existing ones
@@ -61,10 +62,11 @@ def process(pars):
                 for t in range(TotalTilesPerNode):
                     Distance = pm.compactDistance(TileCompacts[t], Compact)
                     if Distance < Distances[t]:
-                        whichSources[t] = iter*per_page + f
+                        whichSources[t] = ids[f]
                         newSources.append(whichSources[t])
                         Distances[t] = Distance
-#                        print "placed photo {} at position {}".format(whichSources[t],t)
+#                        print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
             comm.send(placerRes, dest=0, tag=4)
+            print "P{}: sent results after {}th scraper in iter {} to Master".format(rank, scraper, iter)
