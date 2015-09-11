@@ -93,6 +93,8 @@ def process(pars):
 ###
         for scraper in range(NScrapers):
             print "Master node waiting for the {}th scraper".format(scraper)
+            # apparently all nodes in comm need to pay attention to bcast
+            comm.bcast(None, root=1+scraper) 
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
             Compacts = scraperRes['Compacts'] 
