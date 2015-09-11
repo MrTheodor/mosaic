@@ -70,4 +70,4 @@ if __name__=="__main__":
         poolsize = 20
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
-        arrs = fp.fetchUrls()
+        arrs = fp.executeJobs()
