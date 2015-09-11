@@ -112,6 +112,7 @@ def process(pars):
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
 #            print "Master node received from {} the following list of Sources to use \n".format(placerRes['placer']), placerRes['whichSources']
+        print "Master received results from all nodes"
         FinalImg = Image.fromarray(FinalArr, 'RGB')
         FinalImg.save('mosaic{}.png'.format(page))
         print "Image saved after page {}".format(page)

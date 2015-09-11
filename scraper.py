@@ -44,9 +44,7 @@ def process(pars):
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
                                 'ids': ids}
-        for placer in range(NPlacers):
-            print "Scraper, node {} sending to Placer node {}".format(rank, 1+NScrapers+placer)
-            comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
+        comm.bcast(scraperResForPlacers, root=rank)
         comm.send(scraperResForMaster, dest=0, tag=3)
         print "Scraper node {} sent ids at page {}".format(rank, page)
 
