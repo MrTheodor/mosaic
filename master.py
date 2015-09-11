@@ -94,6 +94,8 @@ def process(pars):
 ###
         for scraper in range(NScrapers):
             print "M{}:  waiting for the {}th scraper".format(rank, scraper)
+            # apparently all nodes in comm need to pay attention to bcast
+            comm.bcast(None, root=1+scraper) 
             scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
             arrs = scraperRes['arrs'] 
             Compacts = scraperRes['Compacts'] 
@@ -110,7 +112,7 @@ def process(pars):
             #print "M{}: received result from placer node {}".format(rank, placer)
             #print "M{}: received from {} the following list of Sources to use \n".format(rank, placerRes['placer']), placerRes['whichSources']
             for t in range(len(whichSources)):
-                print "M{}: At {} use source {}".format(rank, t, whichSources[t])
+                #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
         print "M{}: finished listening to placer results".format(rank)

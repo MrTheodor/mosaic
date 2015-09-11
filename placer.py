@@ -50,7 +50,7 @@ def process(pars):
     for iter in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             print "P{}: waiting for ids at iter {}".format(rank, iter)
-            scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status) # N.B. This is "scraperResForPlacer" and NOT "scraperResForMaster"
+            scraperRes = comm.bcast(None, root=1+scraper)
             print "P{}: received ids at iter {}".format(rank, iter)
             Compacts = scraperRes['Compacts']
             ids = scraperRes['ids']

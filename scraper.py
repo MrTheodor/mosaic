@@ -50,11 +50,10 @@ def process(pars):
         scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
         scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
                                 'ids': ids}
-        for placer in range(NPlacers):
-            #print "S{}: sending to Placer node {}".format(rank, 1+NScrapers+placer)
-            comm.send(scraperResForPlacers, dest=1+NScrapers+placer, tag=2)
+        print "S{}: broadcasting to Placer nodes".format(rank)
+        comm.bcast(scraperResForPlacers, root=rank)
         comm.send(scraperResForMaster, dest=0, tag=3)
-        print "S{}: sent ids at iter {}".format(rank, iter)
+        print "S{}: broadcasted ids at iter {}".format(rank, iter)
 
 if __name__=="__main__":
     import photo_match_tinyimg2 as photo_match
@@ -76,4 +75,4 @@ if __name__=="__main__":
         poolsize = 20
         fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                          poolsize)
-        arrs = fp.fetchUrls()
+        arrs = fp.executeJobs()
