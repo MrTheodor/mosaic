@@ -105,11 +105,11 @@ def process(pars):
                 arrsKeep[ids[i]] = arrs[i]
         print "M{}: now listening for placer results".format(rank)
         for step in range(NPlacers*NScrapers):
-            #print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)
+            print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
-            #print "M{}: received result from placer node {}".format(rank, placer)
+            print "M{}: received result from placer node {}".format(rank, placer)
             #print "M{}: received from {} the following list of Sources to use \n".format(rank, placerRes['placer']), placerRes['whichSources']
             for t in range(len(whichSources)):
                 #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
