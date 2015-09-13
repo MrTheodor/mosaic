@@ -14,6 +14,7 @@ class photoMatch(object):
     def __init__(self, par={'fidelity': 5}):
         N = par['fidelity']
         self.compareSize = (N,N)
+        self.totalSize = N*N
     
     # reduces a photo (of any size) given as an MxNx3 scipy array (or should it be a PIL image?)
     # down to some more easily compared representation
@@ -27,8 +28,11 @@ class photoMatch(object):
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
-    def compactDistance(self, rep1, rep2):
-        rep1_avg = scipy.mean(rep1, axis=0)
-        rep2_avg = scipy.mean(rep2, axis=0)
-        return scipy.sqrt(scipy.sum((rep1_avg - rep2_avg)**2))
+    def compactDistance(self, target, candidates):
+        #compare the candidates to the target accordin to some measure
+        targetarr = target.reshape((self.totalSize, 3))
+        candidatesarr = candidates.T.reshape((candidates.shape[1], self.totalSize, 3))
+        target_avg = scipy.mean(targetarr, axis=1)
+        candidates_avg = scipy.mean(candidatesarr, axis=1)
+        return scipy.sum((target_avg - candidates_avg)**2, axis=1)
         
