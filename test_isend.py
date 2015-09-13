@@ -31,10 +31,12 @@ else:
   data0 = scipy.empty((many,3), dtype='i')
   data1 = scipy.empty((many,3), dtype='i')
   sleep(2*rank)
-  comm.Recv([data0, MPI.INT], source=MPI.ANY_SOURCE, tag=0)
+  in0 = comm.Recv([data0, MPI.INT], source=MPI.ANY_SOURCE, tag=0)
   print "N{}: 0:".format(rank), data0[0,:]
-  comm.Recv([data1, MPI.INT], source=MPI.ANY_SOURCE, tag=1)
+  in1 = comm.Recv([data1, MPI.INT], source=MPI.ANY_SOURCE, tag=1)
   print "N{}: 1:".format(rank), data1[0,:]
+  print "N{}: 0:".format(rank), in0
+  print "N{}: 1:".format(rank), in1
   
 
 #print "N{}:".format(rank), data
