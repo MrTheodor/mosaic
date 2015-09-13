@@ -61,15 +61,14 @@ def process(pars):
             newSources = []
 
 	    # for each set of received files, see if any are better matches to the existing ones
-            for f in range(compactvs.shape[0]):
-                compactv = compactvs[f,:]
-                for t in range(TotalTilesPerNode):
-                    Distance = pm.compactDistance(TileCompactvs[t], compactv)
-                    if Distance < Distances[t]:
-                        whichSources[t] = ids[f]
-                        newSources.append(whichSources[t])
-                        Distances[t] = Distance
-#                        print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
+            for t in range(TotalTilesPerNode):
+                trialDistances = pm.compactDistance(TileCompactvs[t], compactvs)
+                i = scipy.argmin(trialDistances)
+                if trialDistances[i] < Distances[t]:
+                    whichSources[t] = ids[i]
+                    newSources.append(whichSources[t])
+                    Distances[t] = Distance
+#                    print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
             comm.isend(placerRes, dest=0, tag=4)

@@ -12,6 +12,8 @@ import numpy as np
 class photoMatch(object):
     
     def __init__(self, par={'fidelity': 5}):
+        print "Initializing an instance of the photo match that uses an average colour as its distance metric"
+        self.type = 'Tiny image, comparing mean'
         N = par['fidelity']
         self.compareSize = (N,N)
         self.totalSize = N*N
