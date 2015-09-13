@@ -19,16 +19,16 @@ class photoMatch(object):
     # down to some more easily compared representation
     # baasically a coarse graining
     def compactRepresentation(self, photo):
-        if len(photo.shape) == 3: # must be NxNx3
-            if photo.shape[2] == 3: # must be NxNx3
-                return scipy.misc.imresize(photo, self.compareSize)
-        return scipy.ones((self.compareSize[0], self.compareSize[1], 3))*scipy.NaN
+        if photo.size == 75*75*3: # must be NxNx3
+            photo = photo.reshape((75,75,3))
+            return scipy.misc.imresize(photo, self.compareSize).reshape((1,scipy.prod(self.compareSize)*3))
+        return scipy.ones((1, scipy.prod(self.compareSize)*3))*scipy.NaN
         
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
     # here the L2-norm distance is used
     def compactDistance(self, rep1, rep2):
-        rep1_avg = scipy.mean(scipy.mean(rep1, axis=0), axis=0)
-        rep2_avg = scipy.mean(scipy.mean(rep2, axis=0), axis=0)
+        rep1_avg = scipy.mean(rep1, axis=0)
+        rep2_avg = scipy.mean(rep2, axis=0)
         return scipy.sqrt(scipy.sum((rep1_avg - rep2_avg)**2))
         

@@ -31,7 +31,7 @@ def process(pars):
 
 #%% Divide the NodeArr into tiles
     TileArrs = [] # each tile in the image
-    TileCompacts = [] # each tile in the image
+    TileCompactvs = [] # each tile in the image
     whichSources = scipy.zeros((TotalTilesPerNode), dtype=int)
     Distances = scipy.ones((TotalTilesPerNode))*scipy.Inf # the quality of the current fit for each tile (put at infinity to start with)
     
@@ -44,23 +44,27 @@ def process(pars):
         SplitArrs = scipy.split(VertSplitArr, horSections, axis=0)
         for SplitArr in SplitArrs:
             TileArrs.append(SplitArr)
-            TileCompacts.append(pm.compactRepresentation(SplitArr))
+            TileCompactvs.append(pm.compactRepresentation(SplitArr))
 
 #%% listen to the scrapers for images place
     for iter in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             print "P{}: waiting for ids at iter {}".format(rank, iter)
-            scraperRes = comm.bcast(None, root=1+scraper)
+            scraperRes = scipy.empty((per_page, 1+3*scipy.prod(pm.compareSize)), dtype='i') # 1 for the ids!
+            #print "P{}: res shape: ".format(rank), scraperRes.shape
+            comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2) # N.B. This is "scraperResForPlacers" and NOT "scraperResForMaster"
             print "P{}: received ids at iter {}".format(rank, iter)
-            Compacts = scraperRes['Compacts']
-            ids = scraperRes['ids']
+            #Compacts = scraperRes['Compacts']
+            #ids = scraperRes['ids']
+            ids = scraperRes[:,0]
+            compactvs = scraperRes[:,1:]
             newSources = []
 
 	    # for each set of received files, see if any are better matches to the existing ones
-            for f in range(len(Compacts)):
-                Compact = Compacts[f]
+            for f in range(compactvs.shape[0]):
+                compactv = compactvs[f,:]
                 for t in range(TotalTilesPerNode):
-                    Distance = pm.compactDistance(TileCompacts[t], Compact)
+                    Distance = pm.compactDistance(TileCompactvs[t], compactv)
                     if Distance < Distances[t]:
                         whichSources[t] = ids[f]
                         newSources.append(whichSources[t])
@@ -68,5 +72,5 @@ def process(pars):
 #                        print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
-            comm.send(placerRes, dest=0, tag=4)
+            comm.isend(placerRes, dest=0, tag=4)
             print "P{}: sent results after {}th scraper in iter {} to Master".format(rank, scraper, iter)

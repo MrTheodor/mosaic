@@ -2,6 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import photo_match_tinyimg2 as photo_match
+import os
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -76,6 +77,7 @@ def process(pars):
             for SplitArr in SplitArrs:
                 NodeTiles.append(SplitArr)
         NodeTiless.append(NodeTiles)
+#%% TODO: delete all existing mosaic files while the guys are busy
 
 #%% listen to the placers' INTERMEDIATE results
 # this will be NPlacers*NScrapers*iters communications,
@@ -89,20 +91,19 @@ def process(pars):
     arrsKeep = {}
     for iter in range(iters):
         print "M{}: iter: {} out of {} ".format(rank, iter,iters)
-###
-### The stuff below is not necessarily in the correct order
-###
         for scraper in range(NScrapers):
             print "M{}:  waiting for the {}th scraper".format(rank, scraper)
-            # apparently all nodes in comm need to pay attention to bcast
-            comm.bcast(None, root=1+scraper) 
-            scraperRes = comm.recv(source=MPI.ANY_SOURCE, tag=3, status=status) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacer"
-            arrs = scraperRes['arrs'] 
-            Compacts = scraperRes['Compacts'] 
-            ids   = scraperRes['ids'] 
-            print "M{}: received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(rank, len(arrs), ids[0])
-            for i in range(len(arrs)):
-                arrsKeep[ids[i]] = arrs[i]
+            scraperRes = scipy.empty((per_page, 1+75*75*3), dtype='i') # 1 for the ids!
+            #print "M{}: res shape: ".format(rank), scraperRes.shape
+            comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=3) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacers"
+            #arrs = scraperRes['arrs'] 
+            #ids   = scraperRes['ids'] 
+            ids = scraperRes[:,0]
+            arrvs = scraperRes[:,1:]
+            print "M{}: received {} files from a Scraper node".format(rank, ids.shape[0], ids[0])
+            #print "M{}: received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(rank, arrvs.shape[0], ids[0])
+            for i in range(arrvs.shape[0]):
+                arrsKeep[ids[i]] = arrvs[i,:].reshape((75,75,3))
         print "M{}: now listening for placer results".format(rank)
         for step in range(NPlacers*NScrapers):
             print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)

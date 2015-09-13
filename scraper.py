@@ -44,15 +44,26 @@ def process(pars):
         #print "S{}: arrs has length {}".format(rank, len(arrs))
         ids = totalpage*per_page + scipy.arange(per_page, dtype=int)
         print "S{}: files fetched for iter {}".format(rank, iter)
-        Compacts = []
+        compacts = []
         for arr in arrs:
-            Compacts.append(pm.compactRepresentation(arr))
-        scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
-        scraperResForMaster  = {'Compacts': Compacts, 'arrs': arrs,
-                                'ids': ids}
+            compacts.append(pm.compactRepresentation(arr))
+        arrvs = scipy.concatenate(arrs, axis=0)
+        compactvs = scipy.concatenate(compacts, axis=0)
+
+        print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
+        for i in range(len(compactvs)):
+            compactv = compactvs[i]
+            print "S{}: compactvs[{}]".format(rank, i), compactv.shape
+        scraperResForPlacers = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), compactvs), axis=1), dtype='i')
+        scraperResForMaster  = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
+        #print "S{}: res shape: ".format(rank), scraperResForPlacers.shape
+        #print "S{}: res shape: ".format(rank), scraperResForMaster.shape
+        #scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}
+        #scraperResForMaster  = {'arrs': arrs, 'ids': ids}
         print "S{}: broadcasting to Placer nodes".format(rank)
-        comm.bcast(scraperResForPlacers, root=rank)
-        comm.send(scraperResForMaster, dest=0, tag=3)
+        for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
+            comm.Send([scraperResForPlacers, MPI.INT], dest=placer, tag=2)
+        comm.Send([scraperResForMaster, MPI.INT], dest=0, tag=3)
         print "S{}: broadcasted ids at iter {}".format(rank, iter)
 
 if __name__=="__main__":

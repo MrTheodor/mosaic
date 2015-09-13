@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # vim:fenc=utf-8
 #
-# By Jakub Krajniak & Keith Myerscough CC BY-NC-SA
+# By Korneel Dumon, Jakub Krajniak and Keith Myerscough CC BY-NC-SA
 
 import master
 import scraper
@@ -20,6 +20,8 @@ for i in range(len(sys.argv[:])):
     name = sys.argv[i]
     if name in pars:
         pars[name] = int(sys.argv[i+1])
+if pars['per_page'] > 500:
+    pars['per_page'] = 500
 
 if rank == 0:
     master.process(pars)
