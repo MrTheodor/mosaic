@@ -15,13 +15,16 @@ class photoMatch(object):
         N = par['fidelity']
         self.compareSize = (N,N)
         self.totalSize = N*N
+        self.fullSize = (75,75)
     
     # reduces a photo (of any size) given as an MxNx3 scipy array (or should it be a PIL image?)
     # down to some more easily compared representation
     # baasically a coarse graining
     def compactRepresentation(self, photo):
-        if photo.size == 75*75*3: # must be NxNx3
-            photo = photo.reshape((75,75,3))
+        print self.fullSize
+        print photo.size
+        if photo.size == scipy.prod(self.fullSize)*3: # must be NxNx3
+            photo = photo.reshape((self.fullSize[0],self.fullSize[1],3))
             return scipy.misc.imresize(photo, self.compareSize).reshape((1,scipy.prod(self.compareSize)*3))
         return scipy.ones((1, scipy.prod(self.compareSize)*3))*scipy.NaN
         
@@ -31,8 +34,12 @@ class photoMatch(object):
     def compactDistance(self, target, candidates):
         #compare the candidates to the target accordin to some measure
         targetarr = target.reshape((self.totalSize, 3))
-        candidatesarr = candidates.T.reshape((candidates.shape[1], self.totalSize, 3))
-        target_avg = scipy.mean(targetarr, axis=1)
+        print "targetarr:\n", targetarr
+        candidatesarr = candidates.reshape((candidates.shape[0], self.totalSize, 3))
+        print "candidatesarr\n", candidatesarr        
+        target_avg = scipy.mean(targetarr, axis=0)
+        print "target_avg:\n", target_avg
         candidates_avg = scipy.mean(candidatesarr, axis=1)
+        print "candidates_avg:\n", candidates_avg
         return scipy.sum((target_avg - candidates_avg)**2, axis=1)
         
