@@ -9,6 +9,8 @@ import placer
 import sys
 from mpi4py import MPI
 
+sys.path.append('.')
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()

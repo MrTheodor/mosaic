@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import flickr
 import urllib
 from PIL import Image
@@ -41,6 +42,11 @@ class flickrScraper(object):
             try:
                 im = Image.open(urllib.urlretrieve(url)[0])
                 arr = scipy.array(im)
+                if len(arr.shape) == 2:
+		    # greyscale handling in the scraper might be the best way
+		    # it certainly is the first possibility, so negate the requirement for further handling
+                    arr = arr.reshape((arr.shape[0], arr.shape[1], 1))
+                    arr = scipy.concatenate((arr, arr, arr), axis=2)
                 arr = arr.reshape((1,arr.size))
             except:
                 # print "******ERRORS*********"

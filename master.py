@@ -9,15 +9,16 @@ def process(pars):
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
     iters = pars['iters']
-    tags = ('Bussum','Football','PSV','Minimalism','urbex')
+    MaxTilesVert = pars['MaxTilesVert']
+    fidelity = pars['fidelity']
+    tags = ('Minimalism')
+    #tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
     status = MPI.Status()
    
-    MaxTilesVert = pars['MaxTilesVert']
-    fidelity = pars['fidelity']
     for key, value in pars.iteritems():
         print "M{}: {} is now {}".format(rank, key, value)
 
@@ -28,12 +29,12 @@ def process(pars):
     print "Master initialized photo matcher of type {}".format(pm.type)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
-    scraperPars = {'pm': pm, 'tags': tags }
+    PixPerTile = scipy.array((75,75))
+    scraperPars = {'pm': pm, 'tags': tags, 'PixPerTile': PixPerTile}
     for scraper in range(1,1+NScrapers):
 	comm.send(scraperPars, dest=scraper, tag=0)
 
 #%% adjust the image to have the correct shape (aspect ratio) for turning it into a mosaic
-    PixPerTile = scipy.array((75,75))
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
     TargetImg = Image.open('./KWM24489.JPG')
@@ -93,8 +94,8 @@ def process(pars):
     for iter in range(iters):
         print "M{}: iter: {} out of {} ".format(rank, iter,iters)
         for scraper in range(NScrapers):
-            print "M{}:  waiting for the {}th scraper".format(rank, scraper)
-            scraperRes = scipy.empty((per_page, 1+75*75*3), dtype='i') # 1 for the ids!
+            print "M{}: waiting for the {}th scraper".format(rank, scraper)
+            scraperRes = scipy.empty((per_page, 1+PixPerTile[0]*PixPerTile[1]*3), dtype='i') # 1 for the ids!
             #print "M{}: res shape: ".format(rank), scraperRes.shape
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=3) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacers"
             #arrs = scraperRes['arrs'] 
@@ -104,14 +105,14 @@ def process(pars):
             print "M{}: received {} files from a Scraper node".format(rank, ids.shape[0], ids[0])
             #print "M{}: received {} files from a Scraper node (it does not need to know which), but the id of the first file is {}".format(rank, arrvs.shape[0], ids[0])
             for i in range(arrvs.shape[0]):
-                arrsKeep[ids[i]] = arrvs[i,:].reshape((75,75,3))
+                arrsKeep[ids[i]] = arrvs[i,:].reshape((PixPerTile[0],PixPerTile[1],3))
         print "M{}: now listening for placer results".format(rank)
         for step in range(NPlacers*NScrapers):
-            print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)
+            #print "M{}: waiting for the {}th block of results (out of {}, one per Scraper per Placer)".format(rank, step, NPlacers*NScrapers)
             placerRes = comm.recv(source=MPI.ANY_SOURCE, tag=4, status=status)
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
-            print "M{}: received result from placer node {}".format(rank, placer)
+            #print "M{}: received a result from placer node {}".format(rank, placer)
             for t in range(len(whichSources)):
                 #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()

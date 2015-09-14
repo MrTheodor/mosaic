@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from mpi4py import MPI
 import flickr_scraper
 from PIL import Image
@@ -23,6 +24,7 @@ def process(pars):
     print "S{}: received params from Master".format(rank)
     pm = scraperPars['pm']
     tags = scraperPars['tags']
+    PixPerTile = scraperPars['PixPerTile']
 
     fs = flickr_scraper.flickrScraper()
     
@@ -45,12 +47,17 @@ def process(pars):
         ids = totalpage*per_page + scipy.arange(per_page, dtype=int)
         print "S{}: files fetched for iter {}".format(rank, iter)
         compacts = []
-        for arr in arrs:
+        arrvs = scipy.ones((per_page, PixPerTile[0]*PixPerTile[1]*3))*scipy.NaN
+        #print "S{}: shape of arrvs is ".format(rank), arrvs.shape
+        for i in range(len(arrs)):
+            arr = arrs[i]
+            #print "S{}: shape of arr is ".format(rank), arr.shape
             compacts.append(pm.compactRepresentation(arr))
-        arrvs = scipy.concatenate(arrs, axis=0)
+            arrvs[i,:arr.shape[1]] = arr
+        #arrvs = scipy.concatenate(arrs, axis=0)
         compactvs = scipy.concatenate(compacts, axis=0)
 
-        print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
+        #print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
         for i in range(len(compactvs)):
             compactv = compactvs[i]
             #print "S{}: compactvs[{}]".format(rank, i), compactv.shape
