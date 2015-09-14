@@ -11,6 +11,7 @@ from scipy import misc, ndimage
 class photoMatch(object):
     
     def __init__(self, par={'fidelity': 5}):
+        print "DEPRACATED"
         N = par['fidelity']
         self.compareSize = (N,N)
     

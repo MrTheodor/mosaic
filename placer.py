@@ -64,11 +64,12 @@ def process(pars):
             for t in range(TotalTilesPerNode):
                 trialDistances = pm.compactDistance(TileCompactvs[t], compactvs)
                 i = scipy.argmin(trialDistances)
+                #print "P{}: at tile {} found minimum distance to be {} at index {}".format(rank, t, trialDistances[i], i)
                 if trialDistances[i] < Distances[t]:
                     whichSources[t] = ids[i]
                     newSources.append(whichSources[t])
-                    Distances[t] = Distance
-#                    print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
+                    Distances[t] = trialDistances[i]
+                    #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
             comm.isend(placerRes, dest=0, tag=4)

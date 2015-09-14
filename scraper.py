@@ -53,7 +53,7 @@ def process(pars):
         print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
         for i in range(len(compactvs)):
             compactv = compactvs[i]
-            print "S{}: compactvs[{}]".format(rank, i), compactv.shape
+            #print "S{}: compactvs[{}]".format(rank, i), compactv.shape
         scraperResForPlacers = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), compactvs), axis=1), dtype='i')
         scraperResForMaster  = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
         #print "S{}: res shape: ".format(rank), scraperResForPlacers.shape

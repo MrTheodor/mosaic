@@ -1,8 +1,8 @@
 from mpi4py import MPI
 from PIL import Image
 import scipy
-import photo_match_tinyimg2 as photo_match
 import os
+import photo_match_tinyimg as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -25,6 +25,7 @@ def process(pars):
 
     pmPars = {'fidelity': fidelity}
     pm = photo_match.photoMatch(pmPars)
+    print "Master initialized photo matcher of type {}".format(pm.type)
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
     scraperPars = {'pm': pm, 'tags': tags }
@@ -111,14 +112,13 @@ def process(pars):
             whichSources = placerRes['whichSources']
             placer = placerRes['placer']-(1+NScrapers)
             print "M{}: received result from placer node {}".format(rank, placer)
-            #print "M{}: received from {} the following list of Sources to use \n".format(rank, placerRes['placer']), placerRes['whichSources']
             for t in range(len(whichSources)):
                 #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
-        print "M{}: finished listening to placer results".format(rank)
+        print "M{}: finished listening to placer results at iter {}".format(rank, iter)
         FinalImg = Image.fromarray(FinalArr, 'RGB')
-        FinalImg.save('mosaic{}.png'.format(iter))
+        FinalImg.save('mosaic_{}.png'.format(iter))
         print "M{}: Image saved after iter {}".format(rank, iter)
 
     print "The master node reached the end of its career"

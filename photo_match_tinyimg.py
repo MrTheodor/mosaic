@@ -23,12 +23,12 @@ class photoMatch(object):
     # down to some more easily compared representation
     # baasically a coarse graining
     def compactRepresentation(self, photo):
-        print self.fullSize
-        print photo.size
-        if photo.size == scipy.prod(self.fullSize)*3: # must be NxNx3
-            photo = photo.reshape((self.fullSize[0],self.fullSize[1],3))
-            return scipy.misc.imresize(photo, self.compareSize).reshape((1,scipy.prod(self.compareSize)*3))
-        return scipy.ones((1, scipy.prod(self.compareSize)*3))*scipy.NaN
+        arr = scipy.ones((self.compareSize[0], self.compareSize[1], 3))*scipy.NaN
+        if len(photo.shape) == 3: # an MxNx3 array of of ANY size:
+            arr = photo
+        elif photo.size == scipy.prod(self.fullSize)*3: # must be NxNx3, with N as in self.fullSize
+            arr = photo.reshape((self.fullSize[0],self.fullSize[1],3))
+        return scipy.misc.imresize(arr, self.compareSize).reshape((1,self.totalSize*3))
         
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
@@ -36,12 +36,8 @@ class photoMatch(object):
     def compactDistance(self, target, candidates):
         #compare the candidates to the target accordin to some measure
         targetarr = target.reshape((self.totalSize, 3))
-        print "targetarr:\n", targetarr
         candidatesarr = candidates.reshape((candidates.shape[0], self.totalSize, 3))
-        print "candidatesarr\n", candidatesarr        
         target_avg = scipy.mean(targetarr, axis=0)
-        print "target_avg:\n", target_avg
         candidates_avg = scipy.mean(candidatesarr, axis=1)
-        print "candidates_avg:\n", candidates_avg
         return scipy.sum((target_avg - candidates_avg)**2, axis=1)
         
