@@ -25,6 +25,7 @@ def process(pars):
     pm = scraperPars['pm']
     tags = scraperPars['tags']
     PixPerTile = scraperPars['PixPerTile']
+    poolSize = scraperPars['poolSize']
 
     fs = flickr_scraper.flickrScraper()
     
@@ -40,8 +41,7 @@ def process(pars):
         urls = fs.scrapeTag(tag, per_page, page=page) 
         print "S{}: tag {} scraped for page {}".format(rank, tag, page)
 
-        poolsize = 50
-        fp = FetcherPool(fs.fetchFileData, urls, poolsize)
+        fp = FetcherPool(fs.fetchFileData, urls, poolSize)
         arrs = fp.executeJobs()
         #print "S{}: arrs has length {}".format(rank, len(arrs))
         ids = totalpage*per_page + scipy.arange(per_page, dtype=int)

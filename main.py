@@ -16,7 +16,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 status = MPI.Status()
 
-pars = {'NScrapers': 1, 'NPlacers': 1, 'iters': 2, 'per_page': 10, 'MaxTilesVert': 8, 'fidelity': 1}
+pars = {'NScrapers': 1, 'NPlacers': 1, 'iters': 2, 'per_page': 10, 'MaxTilesVert': 8, 'fidelity': 1, 'poolSize': 20}
 
 for i in range(len(sys.argv[:])):
     name = sys.argv[i]

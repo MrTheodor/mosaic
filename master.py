@@ -11,8 +11,9 @@ def process(pars):
     iters = pars['iters']
     MaxTilesVert = pars['MaxTilesVert']
     fidelity = pars['fidelity']
-    tags = ('Minimalism')
-    #tags = ('Bussum','Football','PSV','Minimalism','urbex')
+    poolSize = pars['poolSize']
+    #tags = ('Minimalism',)
+    tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -30,7 +31,7 @@ def process(pars):
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
     PixPerTile = scipy.array((75,75))
-    scraperPars = {'pm': pm, 'tags': tags, 'PixPerTile': PixPerTile}
+    scraperPars = {'pm': pm, 'tags': tags, 'PixPerTile': PixPerTile, 'poolSize': poolSize}
     for scraper in range(1,1+NScrapers):
 	comm.send(scraperPars, dest=scraper, tag=0)
 
@@ -117,9 +118,9 @@ def process(pars):
                 #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
                 NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
             
-        print "M{}: finished listening to placer results at iter {}".format(rank, iter)
-        FinalImg = Image.fromarray(FinalArr, 'RGB')
-        FinalImg.save('mosaic_{}.png'.format(iter))
-        print "M{}: Image saved after iter {}".format(rank, iter)
+            print "M{}: finished listening to placer results at iter {}, step {}".format(rank, iter, step)
+            FinalImg = Image.fromarray(FinalArr, 'RGB')
+            FinalImg.save('mosaic_{}_{}.png'.format(iter,step))
+            print "M{}: Image saved after iter {}".format(rank, iter)
 
     print "The master node reached the end of its career"
