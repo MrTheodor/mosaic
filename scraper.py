@@ -82,7 +82,7 @@ if __name__=="__main__":
     plt.close('all')
 	
     print "testing the scraper Pool"
-    M = 10
+    M = 2
     N = 10
     per_page = M*M
     rank = 1
@@ -113,7 +113,7 @@ if __name__=="__main__":
         plt.imshow(arrs[i].reshape((75,75,3)), interpolation='none')
     
     n = 0
-    for N in [1,2,3,5,10,20,50]:
+    for N in [2]:#[1,2,3,5,10,20,50]:
         n+= 1
         
         pm = photo_match.photoMatch({'fidelity': N})

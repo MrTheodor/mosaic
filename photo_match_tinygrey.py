@@ -37,8 +37,8 @@ class photoMatch(object):
     # here the L2-norm distance is used
     def compactDistance(self, target, candidates):
         #compare the candidates to the target accordin to some measure
-        targetarr = target.reshape((self.totalSize))
-        candidatesarr = candidates.reshape((candidates.shape[0], self.totalSize))
+        targetarr = scipy.array(target.reshape((self.totalSize)), dtype=int)
+        candidatesarr = scipy.array(candidates.reshape((candidates.shape[0], self.totalSize)), dtype=int)
         return scipy.sum((targetarr - candidatesarr)**2, axis=(1))
         
     def formatOutput(self, arr):
