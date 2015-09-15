@@ -6,5 +6,7 @@
 cd $PBS_O_WORKDIR
 export MPIEXEC_TIMEOUT=300
 
-mpiexec -np 16 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 1 NPlacers 14 per_page 500 iters 10 MaxTilesVert 32 fidelity 5 &> log
+mpiexec -np 16 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 2 NPlacers 13 per_page 500 iters 10 MaxTilesVert 32 fidelity 2 &> log
 #mpiexec -np 5 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 1 NPlacers 3 per_page 10 iters 2 MaxTilesVert 16 fidelity 1 &> log
+#mpiexec -np 3 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 1 NPlacers 1 per_page 50 iters 1 MaxTilesVert 1 fidelity 3 poolSize 10 &> log
+#mpiexec -np 51 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 10 NPlacers 32 per_page 500 iters 3 MaxTilesVert 32 fidelity 1 poolSize 10 &> log
