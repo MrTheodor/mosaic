@@ -75,24 +75,77 @@ def process(pars):
         comm.Send([scraperResForMaster, MPI.INT], dest=0, tag=3)
         print "S{}: broadcasted ids at iter {}".format(rank, iter)
 
+#%%
 if __name__=="__main__":
-    import photo_match_tinyimg2 as photo_match
+    import photo_match_tinygrey as photo_match
+    from matplotlib import pyplot as plt
+    plt.close('all')
 	
     print "testing the scraper Pool"
-    per_page = 100
+    M = 10
+    N = 10
+    per_page = M*M
     rank = 1
     NScrapers = 1
-    pm = photo_match.photoMatch
     tag = 'Brugge'
 
     fs = flickr_scraper.flickrScraper()
     
-    #%%
-    for iter in range(1):
-        urls = fs.scrapeTag(tag, per_page, iter=iter) 
-        print "tag {} scraped for iter {}".format(tag, iter)
+    #
+    urls = fs.scrapeTag(tag, per_page, page=0) 
+    print "tag {} scraped for iter {}".format(tag, 0)
 
-        poolsize = 20
-        fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
-                         poolsize)
-        arrs = fp.executeJobs()
+    poolsize = 20
+    fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
+                     poolsize)
+    arrs = fp.executeJobs()
+    
+    Img1 = Image.open('KWM24495.JPG')
+    Arr1 = scipy.array(Img1)
+#    Arr1 = Arr1[:75,:350,:]
+    
+    plt.figure(1)
+    plt.imshow(Arr1, interpolation='none')
+#%%
+    for i in range(len(arrs)):
+        plt.figure(2)
+        plt.subplot(M,M,i+1)
+        plt.imshow(arrs[i].reshape((75,75,3)), interpolation='none')
+    
+    n = 0
+    for N in [1,2,3,5,10,20,50]:
+        n+= 1
+        
+        pm = photo_match.photoMatch({'fidelity': N})
+        compact1 = pm.compactRepresentation(Arr1)
+        compactvs = scipy.zeros((len(arrs), pm.totalSize), dtype=scipy.uint8)
+        for i in range(len(arrs)):
+            compact = pm.compactRepresentation(arrs[i])
+            compactvs[i,:] = compact
+    
+#            plt.figure(100+N)
+#            plt.imshow(compact1.reshape((N,N,3)), interpolation='none')
+#            
+#            plt.figure(200+N)
+#            plt.subplot(M,M,i+1)
+#            plt.imshow(compact.reshape((N,N,3)), interpolation='none')
+            
+        
+        distances = pm.compactDistance(compact1, compactvs)
+        imin = scipy.argmin(distances)
+        print imin
+#        plt.figure(5)
+#        plt.plot(distances/N**2)
+            
+        
+        plt.figure(3)
+        plt.subplot(4,6,3*n-2)
+        r = compact1.reshape((N,N,1))
+        plt.imshow(scipy.concatenate((r,r,r), axis=2), interpolation='none')
+        plt.subplot(4,6,3*n-1)
+        plt.imshow(arrs[imin].reshape((75,75,3)), interpolation='none')
+        plt.subplot(4,6,3*n)
+        r = compactvs[imin,:].reshape((N,N,1))
+        plt.imshow(scipy.concatenate((r,r,r), axis=2), interpolation='none')
+    
+    

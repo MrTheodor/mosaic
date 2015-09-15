@@ -7,7 +7,7 @@ Created on Fri Sep  4 22:54:26 2015
 
 import scipy
 from scipy import misc, ndimage
-import numpy as np
+from matplotlib import pyplot as plt
 
 class photoMatch(object):
     
@@ -28,7 +28,9 @@ class photoMatch(object):
             arr = photo
         elif photo.size == scipy.prod(self.fullSize)*3: # must be NxNx3, with N as in self.fullSize
             arr = photo.reshape((self.fullSize[0],self.fullSize[1],3))
-        return scipy.misc.imresize(arr, self.compareSize).sum(axis=2).reshape((1,self.totalSize))
+        greyed = scipy.misc.imresize(arr, self.compareSize)/3
+        greyed = scipy.array(greyed.sum(axis=2), dtype=scipy.uint8)
+        return greyed.reshape((1,self.totalSize))
         
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros
