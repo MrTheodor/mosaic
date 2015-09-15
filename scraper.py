@@ -38,16 +38,16 @@ def process(pars):
         tag = tags[tagid]
         print "S{}: will search for page {} of tag {}".format(rank, page, tag)
 
-        urls = fs.scrapeTag(tag, per_page, page=page) 
+        urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
         print "S{}: tag {} scraped for page {}".format(rank, tag, page)
 
         fp = FetcherPool(fs.fetchFileData, urls, poolSize)
         arrs = fp.executeJobs()
         #print "S{}: arrs has length {}".format(rank, len(arrs))
-        ids = totalpage*per_page + scipy.arange(per_page, dtype=int)
         print "S{}: files fetched for iter {}".format(rank, iter)
         compacts = []
-        arrvs = scipy.ones((per_page, PixPerTile[0]*PixPerTile[1]*3))*scipy.NaN
+        arrvs = scipy.ones((len(arrs), PixPerTile[0]*PixPerTile[1]*3))*scipy.NaN
+        ids = totalpage*per_page + scipy.arange(len(arrs), dtype=int)
         #print "S{}: shape of arrvs is ".format(rank), arrvs.shape
         for i in range(len(arrs)):
             arr = arrs[i]
@@ -56,11 +56,13 @@ def process(pars):
             arrvs[i,:arr.shape[1]] = arr
         #arrvs = scipy.concatenate(arrs, axis=0)
         compactvs = scipy.concatenate(compacts, axis=0)
+        print "S{}: shape of compactbs is ".format(rank), compactvs.shape
 
         #print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
         for i in range(len(compactvs)):
             compactv = compactvs[i]
             #print "S{}: compactvs[{}]".format(rank, i), compactv.shape
+        print "S{}: shapes: ".format(rank), ids.shape, compactvs.shape, arrvs.shape
         scraperResForPlacers = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), compactvs), axis=1), dtype='i')
         scraperResForMaster  = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
         #print "S{}: res shape: ".format(rank), scraperResForPlacers.shape

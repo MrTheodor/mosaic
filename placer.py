@@ -50,7 +50,7 @@ def process(pars):
     for iter in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             print "P{}: waiting for ids at iter {}".format(rank, iter)
-            scraperRes = scipy.empty((per_page, 1+3*scipy.prod(pm.compareSize)), dtype='i') # 1 for the ids!
+            scraperRes = scipy.empty((per_page, 1+pm.totalSize), dtype='i') # 1 for the ids!
             #print "P{}: res shape: ".format(rank), scraperRes.shape
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2) # N.B. This is "scraperResForPlacers" and NOT "scraperResForMaster"
             print "P{}: received ids at iter {}".format(rank, iter)

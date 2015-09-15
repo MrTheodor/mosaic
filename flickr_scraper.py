@@ -20,8 +20,8 @@ class flickrScraper(object):
     def get_url(self, photo): #not good, but fast
         return u'https://farm6.staticflickr.com/{:s}/{:s}_{:s}_s.jpg'.format(photo.server, photo.id, photo.secret)
         
-    def scrapeTag(self, tags, per_page, page=1):
-        photos = flickr.photos_search(tags=tags, per_page=per_page, page=page)
+    def scrapeTag(self, tags, per_page, page=1, sort='interestingness=desc'):
+        photos = flickr.photos_search(tags=tags, per_page=per_page, page=page, sort=sort)
         
         urls = []
         for photo in photos:

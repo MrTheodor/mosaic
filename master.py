@@ -2,7 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import os
-import photo_match_tinyimg as photo_match
+import photo_match_tinygrey as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -39,6 +39,7 @@ def process(pars):
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
     TargetImg = Image.open('./KWM24489.JPG')
+    #TargetImg = Image.open('./Bussum.png')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
@@ -116,7 +117,7 @@ def process(pars):
             #print "M{}: received a result from placer node {}".format(rank, placer)
             for t in range(len(whichSources)):
                 #print "M{}: At {} use source {}".format(rank, t, whichSources[t])
-                NodeTiless[placer][t][:,:,:] = arrsKeep[whichSources[t]].copy()
+                NodeTiless[placer][t][:,:,:] = pm.formatOutput(arrsKeep[whichSources[t]].copy())
             
             print "M{}: finished listening to placer results at iter {}, step {}".format(rank, iter, step)
             FinalImg = Image.fromarray(FinalArr, 'RGB')
