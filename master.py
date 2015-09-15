@@ -2,7 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import os
-import photo_match_tinygrey as photo_match
+import photo_match_tinyimg2 as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -38,7 +38,8 @@ def process(pars):
 #%% adjust the image to have the correct shape (aspect ratio) for turning it into a mosaic
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./KWM24489.JPG')
+    TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
+    #TargetImg = Image.open('./KWM24489.JPG')
     #TargetImg = Image.open('./Bussum.png')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])

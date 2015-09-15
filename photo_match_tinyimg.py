@@ -39,3 +39,5 @@ class photoMatch(object):
         candidatesarr = candidates.reshape((candidates.shape[0], self.totalSize/3, 3))
         return scipy.sum((targetarr - candidatesarr)**2, axis=(1,2))
         
+    def formatOutput(self, arr):
+        return arr

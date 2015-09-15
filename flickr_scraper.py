@@ -47,6 +47,9 @@ class flickrScraper(object):
 		    # it certainly is the first possibility, so negate the requirement for further handling
                     arr = arr.reshape((arr.shape[0], arr.shape[1], 1))
                     arr = scipy.concatenate((arr, arr, arr), axis=2)
+                else:
+                    if arr.shape[2] == 4: # image with alpha channel
+                        arr = arr[:,:,:3]
                 arr = arr.reshape((1,arr.size))
             except:
                 # print "******ERRORS*********"

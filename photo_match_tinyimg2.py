@@ -41,3 +41,5 @@ class photoMatch(object):
         candidates_avg = scipy.mean(candidatesarr, axis=1)
         return scipy.sum((target_avg - candidates_avg)**2, axis=1)
         
+    def formatOutput(self, arr):
+        return arr
