@@ -62,7 +62,7 @@ def process(pars):
             for t in range(TotalTilesPerNode):
                 trialDistances = pm.compactDistance(TileCompactvs[t], compactvs)
                 i = scipy.argmin(trialDistances)
-                print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
+                #print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
                 if trialDistances[i] < Distances[t]:
                     whichSources[t] = ids[i]
                     newSources.append(whichSources[t])
