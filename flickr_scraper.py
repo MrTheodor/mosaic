@@ -38,7 +38,7 @@ class flickrScraper(object):
 
     def fetchFileData(self, url):
         arr = None
-        while arr == None:
+        while arr is None:
             try:
                 im = Image.open(urllib.urlretrieve(url)[0])
                 arr = scipy.array(im)
