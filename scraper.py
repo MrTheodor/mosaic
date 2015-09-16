@@ -51,7 +51,7 @@ def process(pars):
         # fetch the files
         fp = FetcherPool(fs.fetchFileData, urls, poolSize)
         arrs = fp.executeJobs()
-        for i range(per_page - len(arrs)):
+        for i in range(per_page - len(arrs)):
             arrs.append(arrs[-1])
         print "S{}: {} files fetched for iter {}".format(rank, len(arrs), it)
         
