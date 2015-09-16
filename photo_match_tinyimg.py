@@ -7,7 +7,7 @@ Created on Fri Sep  4 22:54:26 2015
 
 import scipy
 from scipy import misc, ndimage
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 
 class photoMatch(object):
     

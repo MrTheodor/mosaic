@@ -2,7 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import os
-import photo_match_tinyimg2 as photo_match
+import photo_match_tinyimg as photo_match
 
 def process(pars):
     NPlacers = pars['NPlacers']
@@ -38,9 +38,8 @@ def process(pars):
 #%% adjust the image to have the correct shape (aspect ratio) for turning it into a mosaic
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
-    #TargetImg = Image.open('./KWM24489.JPG')
-    #TargetImg = Image.open('./Bussum.png')
+    #TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
+    TargetImg = Image.open('./KWM24489.JPG')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
@@ -101,8 +100,6 @@ def process(pars):
             scraperRes = scipy.empty((per_page, 1+PixPerTile[0]*PixPerTile[1]*3), dtype='i') # 1 for the ids!
             #print "M{}: res shape: ".format(rank), scraperRes.shape
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=3) # N.B. This is "scraperResForMaster" and NOT "scraperResForPlacers"
-            #arrs = scraperRes['arrs'] 
-            #ids   = scraperRes['ids'] 
             ids = scraperRes[:,0]
             arrvs = scraperRes[:,1:]
             print "M{}: received {} files from a Scraper node".format(rank, ids.shape[0], ids[0])
@@ -122,7 +119,8 @@ def process(pars):
             
             print "M{}: finished listening to placer results at iter {}, step {}".format(rank, iter, step)
             FinalImg = Image.fromarray(FinalArr, 'RGB')
-            FinalImg.save('mosaic_{}_{}.png'.format(iter,step))
-            print "M{}: Image saved after iter {}".format(rank, iter)
+            FinalImg.save('mosaic_{}.png'.format(iter))
+            #FinalImg.save('mosaic_{}_{}.png'.format(iter,step))
+            print "M{}: Image saved after iter {}, step {}".format(rank, iter, step)
 
     print "The master node reached the end of its career"

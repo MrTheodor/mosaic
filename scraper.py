@@ -56,15 +56,17 @@ def process(pars):
             arrvs[i,:arr.shape[1]] = arr
         #arrvs = scipy.concatenate(arrs, axis=0)
         compactvs = scipy.concatenate(compacts, axis=0)
-        print "S{}: shape of compactbs is ".format(rank), compactvs.shape
 
         #print "S{}: len(compactvs) = {}, len(arrs) = {}".format(rank, len(compactvs), len (arrs))
         for i in range(len(compactvs)):
             compactv = compactvs[i]
             #print "S{}: compactvs[{}]".format(rank, i), compactv.shape
-        print "S{}: shapes: ".format(rank), ids.shape, compactvs.shape, arrvs.shape
+        #print "S{}: shapes: ".format(rank), ids.shape, compactvs.shape, arrvs.shape
         scraperResForPlacers = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), compactvs), axis=1), dtype='i')
         scraperResForMaster  = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
+        # Pad the arrays out to be per-page wide, as this is expected by the placers
+        scraperResForPlacers = scipy.pad(scraperResForPlacers, ((0, per_page-len(arrs)),(0,0)), mode='edge')
+        scraperResForMaster  = scipy.pad(scraperResForMaster , ((0, per_page-len(arrs)),(0,0)), mode='edge')
         #print "S{}: res shape: ".format(rank), scraperResForPlacers.shape
         #print "S{}: res shape: ".format(rank), scraperResForMaster.shape
         #scraperResForPlacers = {'Compacts': Compacts, 'ids': ids}

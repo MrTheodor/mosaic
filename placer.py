@@ -53,23 +53,22 @@ def process(pars):
             scraperRes = scipy.empty((per_page, 1+pm.totalSize), dtype='i') # 1 for the ids!
             #print "P{}: res shape: ".format(rank), scraperRes.shape
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2) # N.B. This is "scraperResForPlacers" and NOT "scraperResForMaster"
-            print "P{}: received ids at iter {}".format(rank, iter)
-            #Compacts = scraperRes['Compacts']
-            #ids = scraperRes['ids']
             ids = scraperRes[:,0]
             compactvs = scraperRes[:,1:]
+            print "P{}: received ids {}--{} at iter {}".format(rank, ids[0], ids[-1], iter)
             newSources = []
 
 	    # for each set of received files, see if any are better matches to the existing ones
             for t in range(TotalTilesPerNode):
                 trialDistances = pm.compactDistance(TileCompactvs[t], compactvs)
                 i = scipy.argmin(trialDistances)
-                #print "P{}: at tile {} found minimum distance to be {} at index {}".format(rank, t, trialDistances[i], i)
+                print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
                 if trialDistances[i] < Distances[t]:
                     whichSources[t] = ids[i]
                     newSources.append(whichSources[t])
                     Distances[t] = trialDistances[i]
                     #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
+            #print "P{}: placed photos: ".format(rank), whichSources
             placerRes = {'whichSources': whichSources, 'newSources': newSources, 'placer': rank}
 	    # send the master node the result
             comm.isend(placerRes, dest=0, tag=4)
