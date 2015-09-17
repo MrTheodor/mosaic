@@ -67,6 +67,7 @@ def process(pars):
 #        scraperRes = scipy.array(64*scipy.randn(per_page, 1+TileSize), dtype='i')
         print "S{}: broadcasting to Placer nodes".format(rank)
         for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
+            print "S{}: broadcasting to Placer node".format(rank, placer)
             comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2)
         print "S{}: broadcasted ids at iter {}".format(rank, it)
         time.sleep(10)
