@@ -15,6 +15,7 @@ class photoMatch(object):
         print "Initializing an instance of the photo match that uses the L2 distance between two arrays as its metric"
         self.type = 'Tiny image, comparing mean'
         N = par['fidelity']
+        self.N = N
         self.compareSize = (N,N)
         self.totalSize = 3*N*N
         self.fullSize = (75,75)
@@ -22,14 +23,13 @@ class photoMatch(object):
     # reduces a photo (of any size) given as an MxNx3 scipy array (or should it be a PIL image?)
     # down to some more easily compared representation
     # baasically a coarse graining
-    def compactRepresentation(self, photo):
-        arr = scipy.ones((self.compareSize[0], self.compareSize[1], 3))*scipy.NaN
-        if len(photo.shape) == 3: # an MxNx3 array of of ANY size:
-            arr = photo
-        elif photo.size == scipy.prod(self.fullSize)*3: # must be NxNx3, with N as in self.fullSize
-            arr = photo.reshape((self.fullSize[0],self.fullSize[1],3))
-        subsampled = scipy.misc.imresize(arr, self.compareSize)
-        return subsampled.reshape((1,self.totalSize))
+    def compactRepresentation(self, arrs):
+        N = self.N
+        arrs_subsampled = scipy.zeros((arrs.shape[0], N,N, 3))
+        i = 0
+        for arr in arrs:
+            arrs_subsampled[i,...] = scipy.misc.imresize(arr, (N,N))
+        return arrs_subsampled
         
     # provide some distance between two compact representations of photos
     # if photo1==photo2, distance should ideally be zeros

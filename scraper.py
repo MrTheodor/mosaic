@@ -65,7 +65,7 @@ def process(pars):
 #        # Pad the arrays out to be per-page wide, as this is expected by the placers
 #        scraperRes = scipy.pad(scraperRes, ((0, per_page-len(arrs)),(0,0)), mode='edge')
 #        scraperRes = scipy.array(64*scipy.randn(per_page, 1+TileSize), dtype='i')
-        print "S{}: broadcasting to Placer nodes".format(rank), scraperRes[:,0]
+        print "S{}: broadcasting to Placer nodes".format(rank)
         for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
             comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2)
         print "S{}: broadcasted ids at iter {}".format(rank, it)

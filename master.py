@@ -41,7 +41,7 @@ def process(pars):
 
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
-    TargetImg = Image.open('./KWM24489.JPG')
+    TargetImg = Image.open('./Matilda.JPG')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
@@ -84,8 +84,9 @@ def process(pars):
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
             comm.Recv([NodeFinalArrs[placer], MPI.INT], source=1+NScrapers+placer, tag=4, status=status)
             
-            print "M{}: finished listening to placer results at iter {}, placer {}".format(rank, iter, placer)
-            FinalImg = Image.fromarray(FinalArr, 'RGB')
+            print "M{}: finished listening to placer results at iter {}, placer {}".format(rank, it, placer)
+            #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
+            FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
             #FinalImg.save('mosaic_{}.png'.format(iter)) # for fewer output images
             FinalImg.save('mosaic_{}_{}.png'.format(it,placer)) # for more output images
             print "M{}: Image saved after iter {}, placer {}".format(rank, it, placer)

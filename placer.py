@@ -60,12 +60,13 @@ def process(pars):
 #%% listen to the scrapers for images place
     for it in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
-            print "P{}: waiting for ids at iter {} for {}".format(rank, it, 1+TileSize)
+            print "P{}: waiting for ids at iter {}".format(rank, it)
             scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1 for the ids!
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2) # N.B. This is "scraperResForPlacers" and NOT "scraperResForMaster"
             ids = scraperRes[:,0]
             arrs = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
-            print "P{}: received ids {}--{} at iter {} ".format(rank, ids[0], ids[-1], it), scraperRes[:,0]
+#            arrs[:,:,:,1:] = 0
+            #print "P{}: received ids {}--{} at iter {} ".format(rank, ids[0], ids[-1], it)
             compacts = pm.compactRepresentation(arrs)
             newSources = []
 
@@ -80,6 +81,7 @@ def process(pars):
                     distances[t] = trialDistances[i]
                     tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
                     #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
+            #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
             print "P{}: placed photos: ".format(rank), whichSources
             
         #print "P{}: finalArr has shape ".format(rank), finalArr.shape
