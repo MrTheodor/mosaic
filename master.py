@@ -92,5 +92,5 @@ def process(pars):
             print "M{}: Image saved after iter {}, placer {}".format(rank, it, placer)
 
 #%% signal completion
+    comm.barrier()
     print "M{}: reached the end of its career".format(rank)
-    

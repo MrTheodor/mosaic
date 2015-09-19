@@ -3,13 +3,14 @@
 #
 # By Korneel Dumon, Jakub Krajniak and Keith Myerscough CC BY-NC-SA
 
-import master
-import scraper
-import placer
-import sys
-from mpi4py import MPI
 
+import sys
 sys.path.append('.')
+
+import master
+import placer
+import scraper
+from mpi4py import MPI
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -31,3 +32,5 @@ elif rank < 1+pars['NScrapers']:
     scraper.process(pars)
 elif rank < 1+pars['NScrapers']+pars['NPlacers']:
     placer.process(pars)
+
+MPI.Finalize()

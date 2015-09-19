@@ -6,7 +6,6 @@ import scipy, threading, time
 
 from ScraperPool import *
 
-
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
     NPlacers = pars['NPlacers']
@@ -62,17 +61,29 @@ def process(pars):
         # create an array consiting of the ids and the photo arrays to be sent
         # to the Placers
         scraperRes = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
-#        # Pad the arrays out to be per-page wide, as this is expected by the placers
-#        scraperRes = scipy.pad(scraperRes, ((0, per_page-len(arrs)),(0,0)), mode='edge')
-#        scraperRes = scipy.array(64*scipy.randn(per_page, 1+TileSize), dtype='i')
-        print "S{}: broadcasting to Placer nodes".format(rank)
-        for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
-            print "S{}: broadcasting to Placer node".format(rank, placer)
-            comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2)
+        #scraperRes = scipy.array(scipy.randn(per_page,1+TileSize), dtype='i')
+        print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+        print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
+        # wait for the previous iteration to be completed before continuing
+        isSent = [False]*NPlacers
+        if it == 0:
+            reqs = []
+            for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
+                print "S{}: sending to Placer node {}".format(rank, placer)
+                reqs.append(comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2))
+        else:
+            while not all(isSent):
+                time.sleep(.1)
+                for p in range(NPlacers):
+                    if isSent[p] == False:
+                        if MPI.Request.Test(reqs[p]):
+                            #print "S{}: sending to Placer node {} at iter {}".format(rank, 1+NScrapers+p, it)
+                            reqs[p] = comm.Isend([scraperRes, MPI.INT], dest=1+NScrapers+p, tag=2)
+                            isSent[p] = True
         print "S{}: broadcasted ids at iter {}".format(rank, it)
-        time.sleep(10)
 
 #%% signal completion
+    comm.barrier()
     print "S{}: reached the end of its career".format(rank)
 #%%
 if __name__=="__main__":

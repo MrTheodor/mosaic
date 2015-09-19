@@ -13,7 +13,7 @@ size = comm.Get_size()
 status = MPI.Status()
 
 scipy.random.seed(rank)
-many = 200000
+many = 900000
 if rank == 0:
   data = scipy.array(100*scipy.randn(many,1), dtype='i')
   print "N{}: ".format(rank), data[:2,:]
@@ -25,5 +25,4 @@ else:
   comm.Recv([data, MPI.INT], source=MPI.ANY_SOURCE, tag=0)
   print "N{}: ".format(rank), data[:2,:]
   
-
-#print "N{}:".format(rank), data
+comm.barrier()

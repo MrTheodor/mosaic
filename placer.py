@@ -60,13 +60,15 @@ def process(pars):
 #%% listen to the scrapers for images place
     for it in range(iters):
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
-            print "P{}: waiting for ids at iter {}".format(rank, it)
+            print "P{}: waiting for the {}th scraper at iter {}".format(rank, scraper, it)
             scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1 for the ids!
-            comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2) # N.B. This is "scraperResForPlacers" and NOT "scraperResForMaster"
+            #print "P{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+            comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2, status=status)
+            #print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             ids = scraperRes[:,0]
             arrs = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
 #            arrs[:,:,:,1:] = 0
-            #print "P{}: received ids {}--{} at iter {} ".format(rank, ids[0], ids[-1], it)
+            print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[0], ids[-1], it, scraper)
             compacts = pm.compactRepresentation(arrs)
             newSources = []
 
@@ -82,12 +84,17 @@ def process(pars):
                     tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
                     #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
             #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
-            print "P{}: placed photos: ".format(rank), whichSources
+            #print "P{}: placed photos: ".format(rank), whichSources
             
         #print "P{}: finalArr has shape ".format(rank), finalArr.shape
         #print "P{}: finalArr has type ".format(rank), type(finalArr[0,0,0])
-        comm.Isend([finalArr, MPI.INT], dest=0, tag=4)
-        print "P{}: sent results after {}th scraper in iter {} to Master".format(rank, scraper, it)
+        if it > 0:
+            isReceived = False
+            while isReceived == False:
+                isReceived = MPI.Request.Test(req)
+        req = comm.Isend([finalArr, MPI.INT], dest=0, tag=4)
+        print "P{}: sent results after iter {} to Master".format(rank, it)
 
 #%% signal completion
+    comm.barrier()
     print "P{}: reached the end of its career".format(rank)
