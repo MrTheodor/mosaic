@@ -77,14 +77,17 @@ def process(pars):
     
 
 #%% listen to the placers' intermediate results
+    tempNodeFinalArr = NodeFinalArrs[0].copy() # for receiving the data, before it is known whence it came
     for it in range(iters):
         print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
-        for placer in range(NPlacers): # listen for the placers IN ORDER
+        for p in range(NPlacers): # listen for the placers IN ORDER
             #print "M{}: NodeFinalArrs[{}] has shape ".format(rank, placer), NodeFinalArrs[placer].shape
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
-            comm.Recv([NodeFinalArrs[placer], MPI.INT], source=1+NScrapers+placer, tag=4, status=status)
+            comm.Recv([tempNodeFinalArr, MPI.INT], source=MPI.ANY_SOURCE, tag=4, status=status)
+            placer = status.Get_source()
+	    NodeFinalArrs[placer-(1+NScrapers)][:,:,:] = tempNodeFinalArr
             
-            print "M{}: finished listening to placer results at iter {}, placer {}".format(rank, it, placer)
+            print "M{}: placer {} results at iter {}".format(rank, placer, it)
             #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
             FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
             #FinalImg.save('mosaic_{}.png'.format(iter)) # for fewer output images
