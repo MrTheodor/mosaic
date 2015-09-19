@@ -90,8 +90,8 @@ def process(pars):
             print "M{}: placer {} results at iter {}".format(rank, placer, it)
             #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
             FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
-            #FinalImg.save('mosaic_{}.png'.format(iter)) # for fewer output images
-            FinalImg.save('mosaic_{}_{}.png'.format(it,placer)) # for more output images
+            #FinalImg.save('output/mosaic_{}.png'.format(iter)) # for fewer output images
+            FinalImg.save('output/mosaic_{}_{}.png'.format(it,placer)) # for more output images
             print "M{}: Image saved after iter {}, placer {}".format(rank, it, placer)
 
 #%% signal completion
