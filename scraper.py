@@ -62,7 +62,7 @@ def process(pars):
         # to the Placers
         scraperRes = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
         #scraperRes = scipy.array(scipy.randn(per_page,1+TileSize), dtype='i')
-        print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+        #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
         print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
         # wait for the previous iteration to be completed before continuing
         isSent = [False]*NPlacers
