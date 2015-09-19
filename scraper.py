@@ -87,7 +87,7 @@ def process(pars):
     print "S{}: reached the end of its career".format(rank)
 #%%
 if __name__=="__main__":
-    import photo_match_tinygrey as photo_match
+    import photo_match_tinyimg as photo_match
     from matplotlib import pyplot as plt
     plt.close('all')
 	
@@ -108,14 +108,17 @@ if __name__=="__main__":
     poolsize = 20
     fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
                      poolsize)
-    arrs = fp.executeJobs()
+    arrvs = fp.executeJobs()
+    arrvs = scipy.concatenate(arrvs, axis=0)
+    CandidateArrs = arrvs.reshape((len(arrvs),75,75,3))
     
-    Img1 = Image.open('KWM24495.JPG')
-    Arr1 = scipy.array(Img1)
+    TargetImg = Image.open('KWM24495.JPG')
+    TargetArr = scipy.array(TargetImg)
 #    Arr1 = Arr1[:75,:350,:]
+    TargetArrs = TargetArr.reshape((scipy.insert(Arr1.shape,0,1)))
     
     plt.figure(1)
-    plt.imshow(Arr1, interpolation='none')
+    plt.imshow(TargetArr, interpolation='none')
 #%%
     for i in range(len(arrs)):
         plt.figure(2)
@@ -127,35 +130,12 @@ if __name__=="__main__":
         n+= 1
         
         pm = photo_match.photoMatch({'fidelity': N})
-        compact1 = pm.compactRepresentation(Arr1)
-        compactvs = scipy.zeros((len(arrs), pm.totalSize), dtype=scipy.uint8)
-        for i in range(len(arrs)):
-            compact = pm.compactRepresentation(arrs[i])
-            compactvs[i,:] = compact
-    
-#            plt.figure(100+N)
-#            plt.imshow(compact1.reshape((N,N,3)), interpolation='none')
-#            
-#            plt.figure(200+N)
-#            plt.subplot(M,M,i+1)
-#            plt.imshow(compact.reshape((N,N,3)), interpolation='none')
+        TargetCompacts = pm.compactRepresentation(TargetArrs)
+        CandidateCompacts= pm.compactRepresentation(CandidateArrs)
             
         
-        distances = pm.compactDistance(compact1, compactvs)
+        distances = pm.compactDistance(TargetCompacts, CandidateCompacts)
         imin = scipy.argmin(distances)
         print imin
-#        plt.figure(5)
-#        plt.plot(distances/N**2)
-            
-        
-        plt.figure(3)
-        plt.subplot(4,6,3*n-2)
-        r = compact1.reshape((N,N,1))
-        plt.imshow(scipy.concatenate((r,r,r), axis=2), interpolation='none')
-        plt.subplot(4,6,3*n-1)
-        plt.imshow(arrs[imin].reshape((75,75,3)), interpolation='none')
-        plt.subplot(4,6,3*n)
-        r = compactvs[imin,:].reshape((N,N,1))
-        plt.imshow(scipy.concatenate((r,r,r), axis=2), interpolation='none')
     
     
