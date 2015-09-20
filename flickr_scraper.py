@@ -2,9 +2,9 @@
 import flickr
 import urllib
 from PIL import Image
-import scipy
+import scipy, StringIO
 
-class flickrScraper(object):
+class FlickrScraper(object):
     
     def __init__(self):
         api_key = 'f49f4273470a5bb1504142d20aeee4d6'
@@ -36,22 +36,58 @@ class flickrScraper(object):
             files.append(file)
         return files
 
-    def fetchFileData(self, url):
+
+    def imageToArray(self, im):
+        arr = scipy.array(im)
+        if len(arr.shape) == 2:
+            # greyscale handling in the scraper might be the best way
+            # it certainly is the first possibility, so negate the requirement for further handling
+            arr = arr.reshape((arr.shape[0], arr.shape[1], 1))
+            arr = scipy.concatenate((arr, arr, arr), axis=2)
+        else:
+            if arr.shape[2] == 4: # image with alpha channel
+                arr = arr[:,:,:3]
+        arr = arr.reshape((1,arr.size))
+        return arr
+    
+    def fetchFileData(self, url, filename=None):
         arr = None
         while arr == None:
             try:
-                im = Image.open(urllib.urlretrieve(url)[0])
-                arr = scipy.array(im)
-                if len(arr.shape) == 2:
-		    # greyscale handling in the scraper might be the best way
-		    # it certainly is the first possibility, so negate the requirement for further handling
-                    arr = arr.reshape((arr.shape[0], arr.shape[1], 1))
-                    arr = scipy.concatenate((arr, arr, arr), axis=2)
-                else:
-                    if arr.shape[2] == 4: # image with alpha channel
-                        arr = arr[:,:,:3]
-                arr = arr.reshape((1,arr.size))
+                imgdata = urllib.urlopen(url).read()
+                im = Image.open(StringIO.StringIO(imgdata))
+                arr = self.imageToArray(im)
             except:
-                # print "******ERRORS*********"
-                arr =  None
+                arr = None
+            
+            
+            # try:
+            #     if (filename == None):
+            #         im = Image.open(urllib.urlretrieve(url)[0])
+            #     else:
+            #         im = Image.open(urllib.urlretrieve(url, filename)[0])
+            #     arr = self.imageToArray(im)
+            # except:
+            #     # print "******ERRORS*********"
+            #     arr =  None
         return arr
+
+
+class FlickrScraperDummy(FlickrScraper):
+    def __init__(self, path):
+        self.path = path
+        print "Using stored images from location : %s" % self.path
+    
+    def get_url_proper(self, photo):
+        raise NotImplementedError("Dummy scraper: no flickr connection!")
+    
+    def scrapeTag(self, tags, per_page, page=1, sort='interestingness=desc'):
+        raise NotImplementedError("Dummy scraper: no flickr connection!")
+    
+    def fetchFiles(self, urls):
+        raise NotImplementedError("Dummy scraper: no flickr connection!")
+    
+    def fetchFileData(self, url, filename=None):
+        im = Image.open(self.path + url)
+        return self.imageToArray(im)
+        

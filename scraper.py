@@ -2,7 +2,7 @@
 from mpi4py import MPI
 import flickr_scraper
 from PIL import Image
-import scipy, threading, time
+import scipy, threading, time, os
 
 from ScraperPool import *
 
@@ -26,25 +26,38 @@ def process(pars):
     tags = scraperPars['tags']
     PixPerTile = scraperPars['PixPerTile']
     poolSize = scraperPars['poolSize']
-
-    fs = flickr_scraper.flickrScraper()
+    
+    if (pars['useDB']):
+        nbImgs = pars['iters'] * pars['NScrapers'] * pars['per_page']
+        dbImages = os.listdir(pars['savepath'])
+        assert (len(dbImages) >= nbImgs)
+        fs = flickr_scraper.FlickrScraperDummy(pars['savepath'])
+    else:
+        fs = flickr_scraper.FlickrScraper()
     
     #%%
-    for iter in range(iters):
+    for it in range(iters):
         # this will represent the how manyth page this will be IN TOTAL FOR ALL THREADS
-        totalpage = iter*NScrapers + rank-1
-        # then compute which page of which tag to search for
-        (page, tagid) = divmod(totalpage, len(tags))
-        tag = tags[tagid]
-        print "S{}: will search for page {} of tag {}".format(rank, page, tag)
-
-        urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
-        print "S{}: tag {} scraped for page {}".format(rank, tag, page)
-
-        fp = FetcherPool(fs.fetchFileData, urls, poolSize)
+        totalpage = it*NScrapers + rank-1
+        if (not pars['useDB']):
+            # then compute which page of which tag to search for
+            (page, tagid) = divmod(totalpage, len(tags))
+            tag = tags[tagid]
+            print "S{}: will search for page {} of tag {}".format(rank, page, tag)
+            
+            urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
+            print "S{}: tag {} scraped for page {}".format(rank, tag, page)
+        
+        else:
+            start = it*NScrapers*per_page + (rank-1)*per_page
+            end = it*NScrapers*per_page + rank*per_page
+            urls = dbImages[start:end]
+        fp = FetcherPool(fs.fetchFileData, urls, poolSize,
+                         pars['savepath'])
         arrs = fp.executeJobs()
         #print "S{}: arrs has length {}".format(rank, len(arrs))
-        print "S{}: files fetched for iter {}".format(rank, iter)
+        print "S{}: files fetched for iter {}".format(rank, it)
+        continue
         compacts = []
         arrvs = scipy.ones((len(arrs), PixPerTile[0]*PixPerTile[1]*3))*scipy.NaN
         ids = totalpage*per_page + scipy.arange(len(arrs), dtype=int)
@@ -75,7 +88,7 @@ def process(pars):
         for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
             comm.Send([scraperResForPlacers, MPI.INT], dest=placer, tag=2)
         comm.Send([scraperResForMaster, MPI.INT], dest=0, tag=3)
-        print "S{}: broadcasted ids at iter {}".format(rank, iter)
+        print "S{}: broadcasted ids at iter {}".format(rank, it)
 
 #%%
 if __name__=="__main__":

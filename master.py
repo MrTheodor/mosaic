@@ -12,8 +12,8 @@ def process(pars):
     MaxTilesVert = pars['MaxTilesVert']
     fidelity = pars['fidelity']
     poolSize = pars['poolSize']
-    #tags = ('Minimalism',)
-    tags = ('Bussum','Football','PSV','Minimalism','urbex')
+    tags = ('Minimalism',)
+    #tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -39,7 +39,8 @@ def process(pars):
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
     #TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
-    TargetImg = Image.open('./KWM24489.JPG')
+    #TargetImg = Image.open('./korneel_test.jpg')
+    TargetImg = Image.open('./KWM24495.JPG')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)

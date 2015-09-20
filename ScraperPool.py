@@ -1,4 +1,4 @@
-import threading, time, copy
+import threading, time, copy, string, random, os
 
 class JobThread(threading.Thread):
     def __init__(self, parentPool, threadID):
@@ -54,21 +54,42 @@ class ThreadPool(object):
             
 
 class FetcherPool(ThreadPool):
-    def __init__(self, fetcher, urls, poolsize):
+    def __init__(self, fetcher, urls, poolsize, savePath=None):
         ThreadPool.__init__(self, poolsize)
         self.fetcher = fetcher
         self.urls = urls
+        self.path = savePath
 
     def finished(self):
         return len(self.urls) == 0
-        
+
+    def random_key(self, length):
+        key = ''
+        for i in range(length):
+            key += random.choice(string.lowercase + string.uppercase + string.digits)
+        return key
+
+    def exists(self, filename):
+        contents = os.listdir(self.path)
+        for name in contents:
+            if name.find(filename) != -1:
+                return True
+        return False
+    
     def getJob(self):
         self.jobsLock.acquire()
         if (len(self.urls) == 0):
             job = None
         else:
             url = copy.deepcopy(self.urls[0])
-            job = lambda: self.fetcher(url)
+            if (self.path != None):
+                fileId = self.random_key(10)
+                while self.exists(fileId):
+                    fileId = self.random_key(10)
+                filename = self.path + "img_" + fileId + ".jpg"
+                job = lambda: self.fetcher(url, filename)
+            else:
+                job = lambda: self.fetcher(url)
             self.urls.pop(0)
             if (len(self.urls) == 0):
                 self.signalFinished()
