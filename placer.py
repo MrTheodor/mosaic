@@ -1,7 +1,53 @@
 import scipy
 from mpi4py import MPI
-from scipy import misc, ndimage
+from scipy import misc, ndimage, signal
 
+
+
+class Placer(object):
+    def __init__(self):
+        self.chunkDim = (50,50,3)
+        self.tileDim = (75,75,3)
+        corrSize = self.tileDim[0]-self.chunkDim[0]+1
+        self.corrDim = (corrSize, corrSize)
+    
+    def getTiles(self):
+        raise NotImplementedError
+
+    def getTargetChunk(self):
+        raise NotImplementedError
+
+    def unpack(self, data, dim):
+        ID = data[0]
+        img = scipy.reshape(data[1:], dim)
+        return (ID, img)
+
+    def normalize(self, data):
+        return scipy.float64(data)/255 - 0.5
+    
+    def compare(self, chunk, tiles):
+        chunk = self.normalize(chunk)
+        maxCorr = (-1, 0, 0)
+        for ID, tile in tiles.iteritems():
+            tile = self.normalize(tile)
+            corr = scipy.zeros(self.corrDim)
+            colorComps = tile.shape[2] # usually 3 RGB color components
+            for i in range(colorComps):
+                corr = corr + signal.correlate(tile[:,:,i],chunk[:,:,i],
+                                               mode='valid')
+            corr = corr / colorComps
+            max_idx = scipy.unravel_index(scipy.argmax(corr), self.corrDim)
+            if (corr[max_idx] > maxCorr[0]):
+                maxCorr = (ID, max_idx, corr[max_idx])
+        return maxCorr
+
+class TestPlacer(Placer):
+    def pack(self, img, ID):
+        data = scipy.reshape(img, (-1,))
+        return scipy.concatenate((scipy.array([ID]), data))
+
+
+    
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
     NPlacers = pars['NPlacers']
