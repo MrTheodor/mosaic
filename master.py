@@ -2,7 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import os
-import photo_match_tinyimg as photo_match
+import photo_match_labimg as photo_match
 
 def process(pars):   
         
@@ -93,6 +93,9 @@ def process(pars):
             #FinalImg.save('output/mosaic_{}.png'.format(iter)) # for fewer output images
             FinalImg.save('output/mosaic_{}_{}.png'.format(it,p)) # for more output images
             print "M{}: Image saved after iter {} and {}th  placer {}".format(rank, it, p, placer)
+
+    FinalImg.save('output/final_{}{}.png'.format(item, value) for item, value in sorted(pars.items())]))
+    print "M{}: Final image saved".format(rank(
 
 #%% signal completion
     comm.barrier()

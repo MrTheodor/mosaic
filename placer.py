@@ -44,7 +44,8 @@ def process(pars):
     for VertSplitArr in VertSplitArrs:
         SplitArrs = scipy.split(VertSplitArr, Tiles[1]/NPlacers, axis=0)
         for SplitArr in SplitArrs:
-            TileArrs.append(SplitArr)
+            TileArrs.append(SplitArr.reshape(scipy.insert(SplitArr.shape, 0, 1)))
+    TileCompacts = pm.compactRepresentation(scipy.concatenate(TileArrs, axis=0))
 
 #%% Create output array
     tileFinalArrs = []            
@@ -58,33 +59,36 @@ def process(pars):
     #print "P{} shapes of SplitArr and SplitFinalArr: ".format(rank), SplitArr.shape, SplitFinalArr.shape
 
 #%% listen to the scrapers for images place
+    scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1+... for the ids!
     for it in range(iters):
+        ids  = scipy.zeros((NScrapers*per_page), dtype='i')
+        arrs = scipy.zeros((NScrapers*per_page, PixPerTile[0],PixPerTile[1],3), dtype='i')
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             print "P{}: waiting for the {}th scraper at iter {}".format(rank, scraper, it)
-            scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1 for the ids!
             #print "P{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2, status=status)
-            #print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
-            ids = scraperRes[:,0]
-            arrs = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
+            print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+            i0 =  scraper*per_page
+	    i1 = (scraper+1)*per_page
+            ids[i0:i1]      = scraperRes[:,0]
+            arrs[i0:i1,...] = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
 #            arrs[:,:,:,1:] = 0
-            print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[0], ids[-1], it, scraper)
-            compacts = pm.compactRepresentation(arrs)
-            newSources = []
+            print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[i0], ids[i1-1], it, scraper)
 
-	       # for each set of received files, see if any are better matches to the existing ones
-            for t in range(TotalTilesPerNode):
-                trialDistances = pm.compactDistance(TileArrs[t], compacts)
-                i = scipy.argmin(trialDistances)
-                #print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
-                if trialDistances[i] < distances[t]:
-                    whichSources[t] = ids[i]
-                    newSources.append(whichSources[t])
-                    distances[t] = trialDistances[i]
-                    tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
-                    #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
-            #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
-            #print "P{}: placed photos: ".format(rank), whichSources
+        # compact each of the arrays
+        compacts = pm.compactRepresentation(arrs)
+        # for each set of received files, see if any are better matches to the existing ones
+        for t in range(TotalTilesPerNode):
+            trialDistances = pm.compactDistance(TileCompacts[t], compacts)
+            i = scipy.argmin(trialDistances)
+            #print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
+            if trialDistances[i] < distances[t]:
+                whichSources[t] = ids[i]
+                distances[t] = trialDistances[i]
+                tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
+                #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
+        #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
+        #print "P{}: placed photos: ".format(rank), whichSources
             
         #print "P{}: finalArr has shape ".format(rank), finalArr.shape
         #print "P{}: finalArr has type ".format(rank), type(finalArr[0,0,0])
