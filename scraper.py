@@ -2,9 +2,9 @@
 from mpi4py import MPI
 import flickr_scraper
 from PIL import Image
-import scipy, threading, time
+import scipy, time, os
 
-from ScraperPool import *
+import ScraperPool
 
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
@@ -27,13 +27,16 @@ def process(pars):
     scraperPars = comm.recv(source=0, tag=0, status=status)
     #print "S{}: received params from Master".format(rank)
     tags = scraperPars['tags']
-    PixPerTile = scraperPars['PixPerTile']
     poolSize = scraperPars['poolSize']
     
-    TileSize = 3*scipy.prod(PixPerTile)
-
 #%% Initiate the flickr scraper
-    fs = flickr_scraper.flickrScraper()
+    if pars['useDB']:
+        nbImgs = iters * NScrapers * per_page
+        dbImages = os.listdir(pars['savepath'])
+        assert (len(dbImages) >= nbImgs)
+        fs = flickr_scraper.FlickrScraperDummy(pars['savepath'])
+    else:
+        fs = flickr_scraper.FlickrScraper()
     print "S{} < init".format(rank) 
     
 #%% outer iteration
@@ -46,31 +49,39 @@ def process(pars):
         #print "S{}: will search for page {} of tag {}".format(rank, page, tag)
 
         print "S{}: > downloading".format(rank)
-        # retrieve urls
-        urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
-        #print "S{}: tag {} scraped for page {}".format(rank, tag, page)
-
-        # fetch the files
-        fp = FetcherPool(fs.fetchFileData, urls, poolSize)
+        # this will represent the how manyth page this will be IN TOTAL FOR ALL THREADS
+        totalpage = it*NScrapers + rank-1
+        if pars['useDB']:
+            start = it*NScrapers*per_page + (rank-1)*per_page
+            end = it*NScrapers*per_page + rank*per_page
+            urls = dbImages[start:end]        
+        else:
+            # then compute which page of which tag to search for
+            (page, tagid) = divmod(totalpage, len(tags))
+            tag = tags[tagid]
+            #print "S{}: will search for page {} of tag {}".format(rank, page, tag)
+            urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
+            #print "S{}: tag {} scraped for page {}".format(rank, tag, page)
+        
+        fp = ScraperPool.FetcherPool(fs.fetchFileData, urls, poolSize,  pars['savepath'])
         arrs = fp.executeJobs()
         for i in range(per_page - len(arrs)):
             arrs.append(arrs[-1])
-#        for i in range(per_page):
-#            print "S{}: arr {} has shape ".format(rank, i), arrs[i].shape
-        #print "S{}: {} files fetched for iter {}".format(rank, len(arrs), it)
+        #print "S{}: arrs has length {}".format(rank, len(arrs))
+#        print "S{}: files fetched for iter {}".format(rank, it)
         
-        # concatenate the arrs list into a matrix
-        arrvs = scipy.concatenate(arrs, axis=0)
         ids = totalpage*per_page + scipy.arange(len(arrs), dtype=int)
         print "S{}: < downloading".format(rank)
 
+        # concatenate the arrs list into a matrix
+        arrvs = scipy.concatenate(arrs, axis=0)
         # create an array consiting of the ids and the photo arrays to be sent
         # to the Placers
         scraperRes = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
         #scraperRes = scipy.array(scipy.randn(per_page,1+TileSize), dtype='i')
         #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
         #print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
-        #print "S{}: > sending".format(rank)
+        print "S{}: > sending".format(rank)
         # wait for the previous iteration to be completed before continuing
         isSent = [False]*NPlacers
         if it == 0:

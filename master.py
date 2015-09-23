@@ -15,6 +15,7 @@ def process(pars):
     poolSize = pars['poolSize']
     #tags = ('Minimalism',)
     tags = ('Gradient','Minimalism','Face')
+    #tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
 #%% MPI stuff
     comm = MPI.COMM_WORLD
@@ -43,6 +44,8 @@ def process(pars):
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
     
     TargetImg = Image.open('./Matilda.JPG')
+    #TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
+    #TargetImg = Image.open('./korneel_test.jpg')
     TargetSize = TargetImg.size
     TilesHor = (TargetSize[0]*PixPerTile[1]*TilesVert)/(TargetSize[1]*PixPerTile[0])
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
@@ -90,7 +93,7 @@ def process(pars):
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
             comm.Recv([tempNodeFinalArr, MPI.INT], source=MPI.ANY_SOURCE, tag=4, status=status)
             placer = status.Get_source()
-	    NodeFinalArrs[placer-(1+NScrapers)][:,:,:] = tempNodeFinalArr
+            NodeFinalArrs[placer-(1+NScrapers)][:,:,:] = tempNodeFinalArr
             
             print "M{}: placer {} results at iter {}".format(rank, placer, it)
             #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
