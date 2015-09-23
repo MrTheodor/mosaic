@@ -45,7 +45,10 @@ class Placer(object):
         for i in range(self.iters):
             self.getTiles()
             self.matchPieces()
-        self.sendToMaster()
+            self.sendToMaster()
+        # --- signal completion
+        self.comm.barrier()
+        print "P{}: reached the end of its career".format(self.rank)
     
     def listenForParameters(self):
         placerPars = self.comm.recv(source=0, tag=0, status=self.status)
@@ -157,6 +160,7 @@ class Placer(object):
 
         for idx in range(len(tileFinalArrs)):
             match = self.matchMap[idx]
+            print match
             tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
         # for idx, piece in enumerate(tileFinalArrs):
         #     match = self.matchMap[idx]
@@ -168,7 +172,7 @@ class Placer(object):
         raise NotImplementedError
 
 
-class MinDistPlacer(Placer):
+class OldMinDistPlacer(Placer):
     def dist(self, arr1, arr2):
         assert (arr1.shape[0] < arr2.shape[0])
         
@@ -181,6 +185,8 @@ class MinDistPlacer(Placer):
     
     def compare(self, chunk, tiles):
         assert (chunk.shape[0] == self.compareChunkSize)
+        
+        print tiles.shape
         
         chunk = scipy.int_(chunk)
         minDist = (-1,0,999999999)
@@ -197,6 +203,28 @@ class MinDistPlacer(Placer):
                 # print diff[min_idx]
                 minDist = (ID, self.translatePos(min_idx), diff[min_idx])
         return minDist
+
+
+class MinDistPlacer(Placer):
+    def distance(self, target, candidates):
+        self.weights = scipy.ones(3) # might want to change this in Lab space
+        return scipy.sum((candidates - target)**2*self.weights, axis=(1,2,3))
+    
+    def compare(self, chunk, tiles):
+        assert (chunk.shape[0] == self.compareChunkSize)
+        
+        chunk = scipy.int_(chunk)
+        S = chunk.shape[0]
+        # distance will contain the distance for each tile, for each position
+        distances = scipy.zeros((self.shiftDim[0], self.shiftDim[1], tiles.shape[0]))
+        for i in range(self.shiftDim[0]):
+            for j in range(self.shiftDim[1]):
+                distances[i,j,:] = self.distance(chunk, tiles[:,i:i+S,j:j+S,:])
+        combinedIndex = scipy.unravel_index(scipy.argmin(distances), distances.shape)
+        idx  = combinedIndex[-1]
+        pos  = self.translatePos(combinedIndex[:-1])
+        dist = distances[combinedIndex]
+        return (idx, pos, dist)
     
 
 class CorrelationPlacer(Placer):
@@ -364,3 +392,14 @@ def process(pars):
 #%% signal completion
     comm.barrier()
     print "P{}: reached the end of its career".format(rank)
+    
+if __name__ == "__main__":
+    import os 
+    
+    pars = {'NScrapers': 1, 'NPlacers': 1, 'iters': 2, 'per_page': 10, 'MaxTilesVert': 8, 'fidelity': 1, 'poolSize': 20, 'UsedPenalty': 0.}
+
+    placer_obj = Placer(pars)
+
+    imagePaths = os.listdir('test_imgs')    
+    K = 10
+    Images = scipy.zeros(K, )
