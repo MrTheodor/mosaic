@@ -20,7 +20,7 @@ def test_compare_single(placer):
     
     ID, best_pos, bestCorr = placer.compare(tile, {0 : expanded})
     if (pos == best_pos):
-        print "tile correctly discovered"
+        print "tile correctly discovered: %r, %r, %r" %(ID, best_pos, bestCorr)
         return True
     else:
         print "ERROR: Tile was not correctly discovered!"
@@ -58,7 +58,9 @@ def test_compare_many(placer, target_fn, cnt):
     Image.fromarray(scipy.uint8(cand)).show()
 
 
-placer = CorrelationPlacer()
+#placer = CorrelationPlacer()
+placer = MinDistPlacer()
+
 # test_img_reconstr(placer)
 # test_compare_two(placer)
 # test_compare_single(placer)

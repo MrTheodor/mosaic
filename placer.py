@@ -1,6 +1,6 @@
 import scipy
 from mpi4py import MPI
-from scipy import misc, ndimage, signal
+from scipy import misc, ndimage, signal, linalg
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -17,8 +17,8 @@ class Placer(object):
     def __init__(self):
         self.chunkDim = (50,50,3)
         self.tileDim = (75,75,3)
-        corrSize = self.tileDim[0]-self.chunkDim[0]+1
-        self.corrDim = (corrSize, corrSize)
+        shiftSize = self.tileDim[0]-self.chunkDim[0]+1
+        self.shiftDim = (shiftSize,shiftSize)
         self.targetPieces = []
         self.tiles = []
         self.matchMap = {}
@@ -28,7 +28,7 @@ class Placer(object):
         while True:
             self.getTiles()
             self.matchPieces()
-            self.sendToMaster()
+        self.sendToMaster()
     
     def getTiles(self):
         raise NotImplementedError
@@ -54,8 +54,31 @@ class Placer(object):
 
 
 class MinDistPlacer(Placer):
+    def dist(self, arr1, arr2):
+        assert (arr1.shape[0] < arr2.shape[0])
+        
+        S = arr1.shape[0]
+        diff = scipy.zeros(self.shiftDim)
+        for i in range(self.shiftDim[0]):
+            for j in range(self.shiftDim[1]):
+                diff[i,j] = linalg.norm(abs(arr1 - arr2[i:i+S,j:j+S]))
+        return diff
+    
     def compare(self, chunk, tiles):
-        raise NotImplementedError
+        chunk = scipy.int_(chunk)
+        minDist = (-1,0,99999)
+        for ID, tile in tiles.iteritems():
+            tile = scipy.int_(tile)
+            diff = scipy.zeros(self.shiftDim)
+            colorComps = tile.shape[2] # usually 3 RGB color components
+            for i in range(colorComps):
+                diff = diff + self.dist(chunk, tile)
+            diff = diff / colorComps
+            min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
+            if (diff[min_idx] < minDist[2]):
+                print diff[min_idx]
+                minDist = (ID, min_idx, diff[min_idx])
+        return minDist
     
 
 class CorrelationPlacer(Placer):
@@ -67,13 +90,13 @@ class CorrelationPlacer(Placer):
         maxCorr = (-1, 0, 0)
         for ID, tile in tiles.iteritems():
             tile = self.normalize(tile)
-            corr = scipy.zeros(self.corrDim)
+            corr = scipy.zeros(self.shiftDim)
             colorComps = tile.shape[2] # usually 3 RGB color components
             for i in range(colorComps):
                 corr = corr + signal.correlate(tile[:,:,i],chunk[:,:,i],
                                                mode='valid')
             corr = corr / colorComps
-            max_idx = scipy.unravel_index(scipy.argmax(corr), self.corrDim)
+            max_idx = scipy.unravel_index(scipy.argmax(corr), self.shiftDim)
             if (corr[max_idx] > maxCorr[2]):
                 print corr[max_idx]
                 maxCorr = (ID, max_idx, corr[max_idx])
