@@ -1,6 +1,7 @@
 import scipy
 from mpi4py import MPI
-from scipy import misc, ndimage, signal, linalg
+from scipy import misc, ndimage, signal
+from numpy import linalg
 from photo_match_labimg import *
 
 import matplotlib.pyplot as plt
@@ -121,16 +122,17 @@ class Placer(object):
         print "P{}: > processing {} target pieces".format(self.rank,
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
+            print "P{}: piece nb {}".format(self.rank, idx)
             self.matchMap[idx] = self.compare(piece, self.resizedTiles)
         print "P{}: < processing".format(self.rank)
-
+    
     def resizeTiles(self, arrs):
         N = self.compareTileSize
         result = scipy.zeros((len(arrs), N,N, 3))
         for i in range(len(arrs)):
             result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
         return result
-            
+    
     def translatePos(self, pos):
         ratio = self.compareTileSize / float(self.tileDim[0])
         pX = int(round(pos[0] / ratio))
@@ -158,10 +160,6 @@ class Placer(object):
         for idx in range(len(tileFinalArrs)):
             match = self.matchMap[idx]
             tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
-        # for idx, piece in enumerate(tileFinalArrs):
-        #     match = self.matchMap[idx]
-        #     print self.cutout(self.tiles[match[0]], match[1])
-        #     piece = self.cutout(self.tiles[match[0]], match[1])
         return finalArr
     
     def compare(self, chunk, tiles):
@@ -184,20 +182,20 @@ class MinDistPlacer(Placer):
         
         chunk = scipy.int_(chunk)
         minDist = (-1,0,999999999)
-        for ID, tile in enumerate(tiles):
-            assert (tile.shape[0] == self.compareTileSize)
-            tile = scipy.int_(tile)
-            diff = scipy.zeros(self.shiftDim)
-            colorComps = tile.shape[2] # usually 3 RGB color components
-            for i in range(colorComps):
-                diff = diff + self.dist(chunk, tile)
-            diff = diff / colorComps
-            min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
-            if (diff[min_idx] < minDist[2]):
-                # print diff[min_idx]
-                minDist = (ID, self.translatePos(min_idx), diff[min_idx])
-        return minDist
-    
+
+        diff = scipy.zeros(self.shiftDim + (len(tiles),))
+        S = self.compareChunkSize
+        for i in range(self.shiftDim[0]):
+            for j in range(self.shiftDim[1]):
+                tmp = linalg.norm(abs(chunk - tiles[:,i:i+S,j:j+S]), axis=(1,2))
+                diff[i,j,:] = scipy.mean(tmp, axis=1)
+        min_idx = scipy.unravel_index(scipy.argmin(diff),
+                                      self.shiftDim + (len(tiles),))
+
+        ID = min_idx[2]
+        pos = self.translatePos(min_idx[:2])
+        minDiff = diff[min_idx]
+        return (ID, pos, minDiff)
 
 class CorrelationPlacer(Placer):
     def compare(self, chunk, tiles):
