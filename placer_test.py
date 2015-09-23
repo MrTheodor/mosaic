@@ -67,7 +67,7 @@ def test_compare_many(placer, target_fn, cnt):
 
 
 #placer = CorrelationPlacer()
-placer = MinDistPlacer()
+placer = TestPlacer()
 placer.listenForParameters()
 
 # test_img_reconstr(placer)

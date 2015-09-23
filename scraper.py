@@ -69,24 +69,28 @@ def process(pars):
         scraperRes = scipy.array(scipy.concatenate((ids.reshape((ids.size,1)), arrvs), axis=1), dtype='i')
         #scraperRes = scipy.array(scipy.randn(per_page,1+TileSize), dtype='i')
         #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
-        #print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
+        print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
         #print "S{}: > sending".format(rank)
         # wait for the previous iteration to be completed before continuing
         isSent = [False]*NPlacers
-        if it == 0:
-            reqs = []
-            for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
-                print "S{}: sending to Placer node {} at iter {}".format(rank, placer, it)
-                reqs.append(comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2))
-        else:
-            while not all(isSent):
-                time.sleep(.1) # a short wait just to keep the log a bit cleaner when printing
-                for p in range(NPlacers):
-                    if isSent[p] == False:
-                        if MPI.Request.Test(reqs[p]):
-                            print "S{}: sending to Placer node {} at iter {}".format(rank, 1+NScrapers+p, it)
-                            reqs[p] = comm.Isend([scraperRes, MPI.INT], dest=1+NScrapers+p, tag=2)
-                            isSent[p] = True
+
+        for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
+            comm.Send([scraperRes, MPI.INT], dest=placer, tag=2)
+        
+        # if it == 0:
+        #     reqs = []
+        #     for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
+        #         print "S{}: sending to Placer node {} at iter {}".format(rank, placer, it)
+        #         reqs.append(comm.Isend([scraperRes, MPI.INT], dest=placer, tag=2))
+        # else:
+        #     while not all(isSent):
+        #         time.sleep(.1) # a short wait just to keep the log a bit cleaner when printing
+        #         for p in range(NPlacers):
+        #             if isSent[p] == False:
+        #                 if MPI.Request.Test(reqs[p]):
+        #                     print "S{}: sending to Placer node {} at iter {}".format(rank, 1+NScrapers+p, it)
+        #                     reqs[p] = comm.Isend([scraperRes, MPI.INT], dest=1+NScrapers+p, tag=2)
+        #                     isSent[p] = True
         #print "S{}: broadcasted ids at iter {}".format(rank, it)
         print "S{}: < sending".format(rank)
 

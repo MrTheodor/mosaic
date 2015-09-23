@@ -15,38 +15,99 @@ def surf(Z):
 
 
 class Placer(object):
-    def __init__(self):
+    def __init__(self, pars):
+        # --- tile size parameters
         self.chunkDim = None
         self.tileDim = None
         self.shiftDim = None
+        # --- data structures for image data and correlation results
         self.targetPieces = []
         self.tiles = []
         self.resizedTiles = []
         self.matchMap = {}
+        # --- parameters for communication
+        self.NPlacers = pars['NPlacers']
+        self.NScrapers = pars['NScrapers']
+        self.per_page = pars['per_page']
+        self.iters = pars['iters']
+        # --- MPI stuff
+        self.comm = MPI.COMM_WORLD
+        self.rank = self.comm.Get_rank()
+        size = self.comm.Get_size()
+        self.status = MPI.Status()
+        # --- identify oneself
+        print "Placer, node {} out of {}".format(self.rank, size) 
+        print "P{} > init".format(self.rank)
     
     def process(self): ## Not tested yet
         self.listenForParameters()
         self.getTargetChunk()
-        while True:
+        for i in range(self.iters):
             self.getTiles()
             self.matchPieces()
         self.sendToMaster()
     
     def listenForParameters(self):
-        self.chunkDim = (50,50,3)
-        self.tileDim = (75,75,3)
-        ratio = float(self.chunkDim[0]) / self.tileDim[0]
-        self.compareTileSize = 45  ## Note: always multiple of 3 for good ratio
+        placerPars = self.comm.recv(source=0, tag=0, status=self.status)
+        print "P{}: received the placer parameters".format(self.rank)
+        self.Tiles         = placerPars['Tiles']
+        self.TilesPerNode  = placerPars['TilesPerNode']
+        PixPerTile    = placerPars['PixPerTile']
+        self.TileSize = 3*scipy.prod(PixPerTile)
+        
+        ratio = 2.0 / 3.0
+        self.tileDim = (PixPerTile[0], PixPerTile[1], 3)
+        self.sliceDim = (int(self.tileDim[0]*ratio),
+                         int(self.tileDim[1]*ratio), 3)
+        
+        self.compareTileSize = placerPars['ComparePixPerTile'][0]
+        assert (self.compareTileSize % 3 == 0) ## multiple of 3
         self.compareChunkSize = int(self.compareTileSize*ratio)
         shiftSize = self.compareTileSize - self.compareChunkSize + 1
         self.shiftDim = (shiftSize,shiftSize)
+        print "P{} < init".format(self.rank) 
+
+    def getTargetChunk(self):
+        print "P{} > listening".format(self.rank) 
+        NodeArr = self.comm.recv(source=0, tag=1, status=self.status)
+        print "P{} < listening".format(self.rank) 
+        
+        #%% Divide the NodeArr into tiles
+        print "P{} > dividing".format(self.rank) 
+        VertSplitArrs = scipy.split(NodeArr, self.Tiles[0], axis=1)
+        for VertSplitArr in VertSplitArrs:
+            SplitArrs = scipy.split(VertSplitArr,self.Tiles[1]/self.NPlacers,
+                                    axis=0)
+            for splitArr in SplitArrs:
+                self.targetPieces.append(splitArr)
+        print "P{}: < dividing image".format(self.rank)
     
     def getTiles(self):
-        raise NotImplementedError
-    
-    def getTargetChunk(self):
-        raise NotImplementedError
-    
+        print "P{}: > listening".format(self.rank)
+        
+        # Received Data : 1+... for the ids!
+        scraperRes = scipy.empty((self.per_page, 1+self.TileSize), dtype='i')
+        self.tiles = scipy.zeros((self.NScrapers*self.per_page,)+self.tileDim,
+                                 dtype='i')
+        ids  = scipy.zeros((self.NScrapers*self.per_page), dtype='i')
+        # listen for the NScrapers scrapers, but not necessarilly in that order!
+        for scraper in range(self.NScrapers):
+            self.comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2,
+                           status=self.status)
+            i0 =  scraper*self.per_page
+            i1 = (scraper+1)*self.per_page
+            ids[i0:i1]      = scraperRes[:,0]
+            print "P{}: received ids {}--{} from the {}th scraper".format(self.rank, ids[i0], ids[i1-1], scraper)
+            self.tiles[i0:i1,...] = scraperRes[:,1:].reshape((self.per_page,)+self.tileDim)
+        self.resizedTiles = self.resizeTiles(self.tiles)
+        print "P{}: < listening".format(self.rank)
+
+    def sendToMaster(self):
+        result = self.buildMosaic()
+        print "P{}: > sending".format(self.rank)
+        self.comm.Send([result, MPI.INT], dest=0, tag=4)
+        print "P{}: < sending".format(self.rank)
+        
     def pack(self, img, ID):
         data = scipy.reshape(img, (-1,))
         return scipy.concatenate((scipy.array([ID]), data))
@@ -57,24 +118,51 @@ class Placer(object):
         return img
     
     def matchPieces(self):
+        print "P{}: > processing {} target pieces".format(self.rank,
+                                                        len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
-            self.matchMap[idx] = self.compare(piece, self.tiles)
-    
+            self.matchMap[idx] = self.compare(piece, self.resizedTiles)
+        print "P{}: < processing".format(self.rank)
+
     def resizeTiles(self, arrs):
         N = self.compareTileSize
-        if len(arrs.shape) == 4:
-            result = scipy.zeros((arrs.shape[0], N,N, 3))
-            for i in range(arrs.shape[0]):
-                result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
-        elif len(arrs.shape) == 3: # arrs is in fact just arr
-            result = scipy.misc.imresize(arrs, (N,N)).reshape(1,N,N,3)
+        result = scipy.zeros((len(arrs), N,N, 3))
+        for i in range(len(arrs)):
+            result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
         return result
-    
+            
     def translatePos(self, pos):
         ratio = self.compareTileSize / float(self.tileDim[0])
         pX = int(round(pos[0] / ratio))
         pY = int(round(pos[1] / ratio))
         return (pX, pY)
+
+    def cutout(self, tiledata, pos):
+        assert (tiledata.shape == self.tileDim)
+        
+        return tiledata[pos[0]:pos[0]+self.sliceDim[0],\
+                        pos[1]:pos[1]+self.sliceDim[1],:]
+    
+    def buildMosaic(self):
+        tileFinalArrs = []            
+        
+        finalArr = scipy.zeros((self.sliceDim[1]*self.Tiles[1]/self.NPlacers,
+                                self.sliceDim[0]*self.Tiles[0], 3), dtype='i')
+        VertSplitFinalArrs = scipy.split(finalArr, self.Tiles[0], axis=1)
+        for VertSplitFinalArr in VertSplitFinalArrs:
+            SplitFinalArrs = scipy.split(VertSplitFinalArr,
+                                         self.Tiles[1]/self.NPlacers, axis=0)
+            for SplitFinalArr in SplitFinalArrs:
+                tileFinalArrs.append(SplitFinalArr)
+
+        for idx in range(len(tileFinalArrs)):
+            match = self.matchMap[idx]
+            tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
+        # for idx, piece in enumerate(tileFinalArrs):
+        #     match = self.matchMap[idx]
+        #     print self.cutout(self.tiles[match[0]], match[1])
+        #     piece = self.cutout(self.tiles[match[0]], match[1])
+        return finalArr
     
     def compare(self, chunk, tiles):
         raise NotImplementedError
@@ -95,7 +183,7 @@ class MinDistPlacer(Placer):
         assert (chunk.shape[0] == self.compareChunkSize)
         
         chunk = scipy.int_(chunk)
-        minDist = (-1,0,999999)
+        minDist = (-1,0,999999999)
         for ID, tile in enumerate(tiles):
             assert (tile.shape[0] == self.compareTileSize)
             tile = scipy.int_(tile)
@@ -106,7 +194,7 @@ class MinDistPlacer(Placer):
             diff = diff / colorComps
             min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
             if (diff[min_idx] < minDist[2]):
-                print diff[min_idx]
+                # print diff[min_idx]
                 minDist = (ID, self.translatePos(min_idx), diff[min_idx])
         return minDist
     
@@ -136,8 +224,28 @@ class CorrelationPlacer(Placer):
         return scipy.float64(data)/255 - 0.5
 
 
-    
-    
+class TestPlacer(MinDistPlacer):
+    def __init__(self):
+        # --- tile size parameters
+        self.tileDim = None
+        self.shiftDim = None
+        # --- data structures for image data and correlation results
+        self.targetPieces = []
+        self.tiles = []
+        self.resizedTiles = []
+        self.matchMap = {}
+        
+    def listenForParameters(self):
+        ratio = 2.0 / 3.0
+        self.tileDim = (75, 75, 3)
+        self.compareTileSize = 45
+        assert (self.compareTileSize % 3 == 0) ## multiple of 3
+        self.compareChunkSize = int(self.compareTileSize*ratio)
+        shiftSize = self.compareTileSize - self.compareChunkSize + 1
+        self.shiftDim = (shiftSize,shiftSize)
+
+
+        
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
     NPlacers = pars['NPlacers']
@@ -181,10 +289,14 @@ def process(pars):
     TileArrs = [] # each tile in the image
     whichSources = scipy.zeros((TotalTilesPerNode), dtype=int)
     distances = scipy.ones((TotalTilesPerNode))*scipy.Inf # the quality of the current fit for each tile (put at infinity to start with)
-    
+
+    print "Tiles = ", Tiles
+    print "NodeArr = ",  NodeArr.shape
     VertSplitArrs = scipy.split(NodeArr, Tiles[0], axis=1)
+    print "VertSplitArrs = ", scipy.array(VertSplitArrs).shape
     for VertSplitArr in VertSplitArrs:
         SplitArrs = scipy.split(VertSplitArr, Tiles[1]/NPlacers, axis=0)
+        print "SplitArrs = ", scipy.array(SplitArrs).shape
         for SplitArr in SplitArrs:
             TileArrs.append(SplitArr.reshape(scipy.insert(SplitArr.shape, 0, 1)))
     TileCompacts = pm.compactRepresentation(scipy.concatenate(TileArrs, axis=0))

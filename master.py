@@ -48,7 +48,9 @@ def process(pars):
     Tiles = scipy.array((TilesHor, TilesVert), dtype=int)
     TilesPerNode = scipy.array((TilesHor, TilesVert/NPlacers), dtype=int)
     Pixels        = Tiles*PixPerTile
-    ComparePixels = Tiles*ComparePixPerTile
+    ratio = 2.0 / 3.0
+    TargetChunkPixels = Tiles*scipy.int_(PixPerTile*ratio)
+    ComparePixels = Tiles*scipy.int_(ComparePixPerTile*ratio)
     
 #%% adjust the image to have the correct shape (aspect ratio) for turning it into a mosaic
     UnscaledWidth = (TargetSize[1]*Tiles[0])/Tiles[1]# the width of the original size image to yield the correct aspect ratio
@@ -60,7 +62,7 @@ def process(pars):
 
 #%% send each placer some parameters
     placerPars = {'TilesPerNode': TilesPerNode, 'UnscaledWidth': UnscaledWidth, 
-                  'Tiles': Tiles, 'pm': pm, 'iters': iters, 'PixPerTile': PixPerTile}
+                  'Tiles': Tiles, 'pm': pm, 'iters': iters, 'PixPerTile': PixPerTile, 'ComparePixPerTile' : ComparePixPerTile}
     for placer in range(NPlacers):
         comm.send(placerPars, dest=1+NScrapers+placer, tag=0)
     print "M{} < init".format(rank) 
@@ -73,9 +75,10 @@ def process(pars):
     for placer in range(NPlacers):
         comm.send(NodeArrs[placer], dest=1+NScrapers+placer, tag=1)
 
-#%% create the final image and divide it into pieces for the placers to FinalArr = CroppedArr.copy()
-# now the division has to be accurate!
-    FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype='i')
+    #%% create the final image and divide it into pieces for the placers to FinalArr = CroppedArr.copy()
+    # now the division has to be accurate!
+    FinalArr = scipy.zeros((TargetChunkPixels[1], TargetChunkPixels[0], 3), dtype='i')
+    # FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype='i')
     NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
     print "M{} < dividing image".format(rank) 
     
