@@ -2,7 +2,7 @@ from mpi4py import MPI
 from PIL import Image
 import scipy
 import os
-import photo_match_tinyimg as photo_match
+import photo_match_labimg as photo_match
 
 def process(pars):   
         
@@ -14,7 +14,7 @@ def process(pars):
     fidelity = pars['fidelity']
     poolSize = pars['poolSize']
     #tags = ('Minimalism',)
-    tags = ('Bussum','Football','PSV','Minimalism','urbex')
+    tags = ('Gradient','Minimalism','Face')
 
 #%% MPI stuff
     comm = MPI.COMM_WORLD
@@ -27,6 +27,7 @@ def process(pars):
 
 #%% identify oneself
     print "Master, node {} out of {}".format(rank, size) 
+    print "M{} > init".format(rank) 
 
 #%% initialize the photo matcher
     pmPars = {'fidelity': fidelity}
@@ -62,7 +63,9 @@ def process(pars):
                   'Tiles': Tiles, 'pm': pm, 'iters': iters, 'PixPerTile': PixPerTile}
     for placer in range(NPlacers):
         comm.send(placerPars, dest=1+NScrapers+placer, tag=0)
+    print "M{} < init".format(rank) 
     
+    print "M{} > dividing image".format(rank) 
 #%% reduce CroppedArr to NPlacers NodeArrs
     NodeArrs = scipy.split(CroppedArr, NPlacers, axis=0) 
 
@@ -74,12 +77,14 @@ def process(pars):
 # now the division has to be accurate!
     FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype='i')
     NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
+    print "M{} < dividing image".format(rank) 
     
 
 #%% listen to the placers' intermediate results
+    print "M{} > listening for results".format(rank) 
     tempNodeFinalArr = NodeFinalArrs[0].copy() # for receiving the data, before it is known whence it came
     for it in range(iters):
-        print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
+        #print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
         for p in range(NPlacers): # listen for the placers
             #print "M{}: NodeFinalArrs[{}] has shape ".format(rank, placer), NodeFinalArrs[placer].shape
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
@@ -90,9 +95,13 @@ def process(pars):
             print "M{}: placer {} results at iter {}".format(rank, placer, it)
             #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
             FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
-            #FinalImg.save('output/mosaic_{}.png'.format(iter)) # for fewer output images
-            FinalImg.save('output/mosaic_{}_{}.png'.format(it,p)) # for more output images
+            FinalImg.save('output/mosaic_{}.png'.format(iter)) # for fewer output images
+            #FinalImg.save('output/mosaic_{}_{}.png'.format(it,p)) # for more output images
             print "M{}: Image saved after iter {} and {}th  placer {}".format(rank, it, p, placer)
+
+    print "M{} < listening for results".format(rank) 
+    FinalImg.save('output/final'+'_'.join(['{}{}'.format(item, value) for item, value in sorted(pars.items())])+'.png')
+    print "M{}: Final image saved".format(rank)
 
 #%% signal completion
     comm.barrier()
