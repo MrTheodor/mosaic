@@ -14,7 +14,7 @@ def test_img_reconstr(placer):
 
 def test_compare_single(placer):
     tile = scipy.array(Image.open("./eye.jpg"))
-    expanded = scipy.zeros((75,75,3))
+    expanded = 128*scipy.ones((75,75,3))
     pos = (8, 12)
     expanded[pos[0]:pos[0]+50, pos[1]:pos[1]+50] = tile
     
@@ -52,14 +52,14 @@ def test_compare_many(placer, target_fn, cnt):
     cand = cands[ID]
     idx = best_pos
     
-    result = scipy.zeros(cand.shape)
+    result = scipy.zeros((75,75,3))
     result[idx[0]:idx[0]+50, idx[1]:idx[1]+50] = target
     Image.fromarray(scipy.uint8(result)).show()
     Image.fromarray(scipy.uint8(cand)).show()
 
-    
-placer = TestPlacer()
-#test_img_reconstr(placer)
+
+placer = CorrelationPlacer()
+# test_img_reconstr(placer)
 # test_compare_two(placer)
 # test_compare_single(placer)
-test_compare_many(placer, "./eye.jpg", 500)
+test_compare_many(placer, "./eye.jpg", 100)

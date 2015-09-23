@@ -2,6 +2,15 @@ import scipy
 from mpi4py import MPI
 from scipy import misc, ndimage, signal
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def surf(Z):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    X,Y = scipy.meshgrid(range(Z.shape[0]),range(Z.shape[1]))
+    ax.plot_surface(X,Y,Z)
+    plt.show()
 
 
 class Placer(object):
@@ -10,23 +19,51 @@ class Placer(object):
         self.tileDim = (75,75,3)
         corrSize = self.tileDim[0]-self.chunkDim[0]+1
         self.corrDim = (corrSize, corrSize)
+        self.targetPieces = []
+        self.tiles = []
+        self.matchMap = {}
+
+    def process(self): ## Not tested yet
+        self.getTargetChunk()
+        while True:
+            self.getTiles()
+            self.matchPieces()
+            self.sendToMaster()
     
     def getTiles(self):
         raise NotImplementedError
 
     def getTargetChunk(self):
         raise NotImplementedError
-
+    
+    def pack(self, img, ID):
+        data = scipy.reshape(img, (-1,))
+        return scipy.concatenate((scipy.array([ID]), data))
+    
     def unpack(self, data, dim):
         ID = data[0]
         img = scipy.reshape(data[1:], dim)
         return (ID, img)
 
-    def normalize(self, data):
-        return scipy.float64(data)/255 - 0.5
+    def matchPieces(self):
+        for idx, piece in enumerate(self.targetPieces):
+            self.matchMap[idx] = self.compare(piece, self.tiles)
     
     def compare(self, chunk, tiles):
+        raise NotImplementedError
+
+
+class MinDistPlacer(Placer):
+    def compare(self, chunk, tiles):
+        raise NotImplementedError
+    
+
+class CorrelationPlacer(Placer):
+    def compare(self, chunk, tiles):
         chunk = self.normalize(chunk)
+        for i in range(chunk.shape[2]):
+            chunk[:,:,i] = chunk[:,:,i] - scipy.mean(chunk[:,:,i])
+            chunk[:,:,i] = chunk[:,:,i] / scipy.amax(abs(chunk[:,:,i]))
         maxCorr = (-1, 0, 0)
         for ID, tile in tiles.iteritems():
             tile = self.normalize(tile)
@@ -37,16 +74,16 @@ class Placer(object):
                                                mode='valid')
             corr = corr / colorComps
             max_idx = scipy.unravel_index(scipy.argmax(corr), self.corrDim)
-            if (corr[max_idx] > maxCorr[0]):
+            if (corr[max_idx] > maxCorr[2]):
+                print corr[max_idx]
                 maxCorr = (ID, max_idx, corr[max_idx])
         return maxCorr
-
-class TestPlacer(Placer):
-    def pack(self, img, ID):
-        data = scipy.reshape(img, (-1,))
-        return scipy.concatenate((scipy.array([ID]), data))
+    
+    def normalize(self, data):
+        return scipy.float64(data)/255 - 0.5
 
 
+    
     
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
