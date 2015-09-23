@@ -124,6 +124,7 @@ class Placer(object):
         print "P{}: > processing {} target pieces".format(self.rank,
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
+            print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
             self.matchMap[idx] = self.compare(piece, self.resizedTiles)
         print "P{}: < processing".format(self.rank)
 
