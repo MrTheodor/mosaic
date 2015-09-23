@@ -1,6 +1,7 @@
 import scipy
 from mpi4py import MPI
 from scipy import misc, ndimage, signal, linalg
+from photo_match_labimg import *
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -20,6 +21,7 @@ class Placer(object):
         self.shiftDim = None
         self.targetPieces = []
         self.tiles = []
+        self.resizedTiles = []
         self.matchMap = {}
     
     def process(self): ## Not tested yet
@@ -34,7 +36,7 @@ class Placer(object):
         self.chunkDim = (50,50,3)
         self.tileDim = (75,75,3)
         ratio = float(self.chunkDim[0]) / self.tileDim[0]
-        self.compareTileSize = 75  ## Note: always multiple of 3 for good ratio
+        self.compareTileSize = 45  ## Note: always multiple of 3 for good ratio
         self.compareChunkSize = int(self.compareTileSize*ratio)
         shiftSize = self.compareTileSize - self.compareChunkSize + 1
         self.shiftDim = (shiftSize,shiftSize)
@@ -50,13 +52,29 @@ class Placer(object):
         return scipy.concatenate((scipy.array([ID]), data))
     
     def unpack(self, data, dim):
-        ID = data[0]
+        ID = data[0] ## Note: not using ID anymore, no need ...
         img = scipy.reshape(data[1:], dim)
-        return (ID, img)
-
+        return img
+    
     def matchPieces(self):
         for idx, piece in enumerate(self.targetPieces):
             self.matchMap[idx] = self.compare(piece, self.tiles)
+    
+    def resizeTiles(self, arrs):
+        N = self.compareTileSize
+        if len(arrs.shape) == 4:
+            result = scipy.zeros((arrs.shape[0], N,N, 3))
+            for i in range(arrs.shape[0]):
+                result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
+        elif len(arrs.shape) == 3: # arrs is in fact just arr
+            result = scipy.misc.imresize(arrs, (N,N)).reshape(1,N,N,3)
+        return result
+    
+    def translatePos(self, pos):
+        ratio = self.compareTileSize / float(self.tileDim[0])
+        pX = int(round(pos[0] / ratio))
+        pY = int(round(pos[1] / ratio))
+        return (pX, pY)
     
     def compare(self, chunk, tiles):
         raise NotImplementedError
@@ -78,7 +96,7 @@ class MinDistPlacer(Placer):
         
         chunk = scipy.int_(chunk)
         minDist = (-1,0,999999)
-        for ID, tile in tiles.iteritems():
+        for ID, tile in enumerate(tiles):
             assert (tile.shape[0] == self.compareTileSize)
             tile = scipy.int_(tile)
             diff = scipy.zeros(self.shiftDim)
@@ -89,7 +107,7 @@ class MinDistPlacer(Placer):
             min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
             if (diff[min_idx] < minDist[2]):
                 print diff[min_idx]
-                minDist = (ID, min_idx, diff[min_idx])
+                minDist = (ID, self.translatePos(min_idx), diff[min_idx])
         return minDist
     
 
@@ -100,7 +118,7 @@ class CorrelationPlacer(Placer):
             chunk[:,:,i] = chunk[:,:,i] - scipy.mean(chunk[:,:,i])
             chunk[:,:,i] = chunk[:,:,i] / scipy.amax(abs(chunk[:,:,i]))
         maxCorr = (-1, 0, 0)
-        for ID, tile in tiles.iteritems():
+        for ID, tile in enumerate(tiles):
             tile = self.normalize(tile)
             corr = scipy.zeros(self.shiftDim)
             colorComps = tile.shape[2] # usually 3 RGB color components
@@ -111,7 +129,7 @@ class CorrelationPlacer(Placer):
             max_idx = scipy.unravel_index(scipy.argmax(corr), self.shiftDim)
             if (corr[max_idx] > maxCorr[2]):
                 print corr[max_idx]
-                maxCorr = (ID, max_idx, corr[max_idx])
+                maxCorr = (ID, self.translatePos(max_idx), corr[max_idx])
         return maxCorr
     
     def normalize(self, data):
@@ -181,7 +199,7 @@ def process(pars):
         for SplitFinalArr in SplitFinalArrs:
             tileFinalArrs.append(SplitFinalArr)
     #print "P{} shapes of SplitArr and SplitFinalArr: ".format(rank), SplitArr.shape, SplitFinalArr.shape
-    print "P{} < dividing image".format(rank) 
+    print "P{}: < dividing image".format(rank) 
 
 #%% listen to the scrapers for images place
     scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1+... for the ids!
@@ -195,7 +213,7 @@ def process(pars):
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2, status=status)
             #print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             i0 =  scraper*per_page
-	    i1 = (scraper+1)*per_page
+            i1 = (scraper+1)*per_page
             ids[i0:i1]      = scraperRes[:,0]
             arrs[i0:i1,...] = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
 #            arrs[:,:,:,1:] = 0
