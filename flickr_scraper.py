@@ -47,8 +47,10 @@ class FlickrScraper(object):
         else:
             if arr.shape[2] == 4: # image with alpha channel
                 arr = arr[:,:,:3]
-        arr = arr.reshape((1,arr.size))
-        return arr
+        if not arr.size == 75*75*3: # the proper size we need
+            print "Array rejected with shape ", arr.shape
+            arr = scipy.zeros((75,75,3), dtype=scipy.uint8)
+        return arr.reshape((1,75,75,3))
     
     def fetchFileData(self, url, filename=None):
         arr = None

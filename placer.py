@@ -8,7 +8,7 @@ def process(pars):
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
     iters = pars['iters']
-    UsedPenalty = float(pars['UsedPenalty'])/10.
+    UsedPenaltyFactor = 1.+float(pars['UsedPenalty'])/10.
 
 #%% MPI stuff
     comm = MPI.COMM_WORLD
@@ -17,12 +17,12 @@ def process(pars):
     status = MPI.Status()
    
 #%% identify oneself
-    print "Placer, node {} out of {}".format(rank, size) 
+    #print "Placer, node {} out of {}".format(rank, size) 
     print "P{} > init".format(rank) 
 
 #%% receive parameters from the master
     placerPars = comm.recv(source=0, tag=0, status=status)
-    print "P{}: received the placer parameters".format(rank)
+    #print "P{}: received the placer parameters".format(rank)
     Tiles         = placerPars['Tiles']
     TilesPerNode  = placerPars['TilesPerNode']
     pm            = placerPars['pm']
@@ -32,18 +32,17 @@ def process(pars):
     # derived parameters
     TileSize = 3*scipy.prod(PixPerTile)
     TotalTilesPerNode = scipy.prod(TilesPerNode)
-    print "P{} < init".format(rank) 
+    print "P{}: < init".format(rank) 
 
 #%% Receive its bit of the target image
-    print "P{} > listening".format(rank) 
+    print "P{}: > listening for master".format(rank) 
     NodeArr = comm.recv(source=0, tag=1, status=status)
     #print "P{}: received its part of the image with shape ".format(rank), NodeArr.shape
-    print "P{} < listening".format(rank) 
+    print "P{}: < listening for master".format(rank) 
 
-    print "P{} > dividing".format(rank) 
+    print "P{}: > dividing image".format(rank) 
 #%% Divide the NodeArr into tiles
     TileArrs = [] # each tile in the image
-    whichSources = scipy.zeros((TotalTilesPerNode), dtype=int)
     distances = scipy.ones((TotalTilesPerNode))*scipy.Inf # the quality of the current fit for each tile (put at infinity to start with)
     
     VertSplitArrs = scipy.split(NodeArr, Tiles[0], axis=1)
@@ -63,43 +62,40 @@ def process(pars):
         for SplitFinalArr in SplitFinalArrs:
             tileFinalArrs.append(SplitFinalArr)
     #print "P{} shapes of SplitArr and SplitFinalArr: ".format(rank), SplitArr.shape, SplitFinalArr.shape
-    print "P{} < dividing image".format(rank) 
+    print "P{}: < dividing image".format(rank) 
 
 #%% listen to the scrapers for images place
-    scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1+... for the ids!
+    scraperRes = scipy.empty((per_page, PixPerTile[1], PixPerTile[0], 3), dtype=scipy.uint8) 
     for it in range(iters):
         print "P{}: > listening".format(rank)
-        ids  = scipy.zeros((NScrapers*per_page), dtype='i')
-        arrs = scipy.zeros((NScrapers*per_page, PixPerTile[0],PixPerTile[1],3), dtype='i')
+        arrs = scipy.zeros((NScrapers*per_page, PixPerTile[0],PixPerTile[1],3), dtype=scipy.uint8)
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
             #print "P{}: waiting for the {}th scraper at iter {}".format(rank, scraper, it)
             #print "P{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
-            comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2, status=status)
+            comm.Recv(scraperRes, source=MPI.ANY_SOURCE, tag=2, status=status)
+            #comm.Recv([scraperRes, MPI.UINT8_T], source=MPI.ANY_SOURCE, tag=2, status=status)
             #print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             i0 =  scraper*per_page
 	    i1 = (scraper+1)*per_page
-            ids[i0:i1]      = scraperRes[:,0]
-            arrs[i0:i1,...] = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
-#            arrs[:,:,:,1:] = 0
-            #print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[i0], ids[i1-1], it, scraper)
+            arrs[i0:i1,...] = scraperRes.reshape((per_page,PixPerTile[0],PixPerTile[1],3))
+            #print "P{}: received at iter {} from the {}th scraper".format(rank, it, scraper)
         print "P{}: < listening".format(rank)
 
         print "P{}: > placing".format(rank)
         # compact each of the arrays
         compacts = pm.compactRepresentation(arrs)
+        # keep track of how often each image is used
+        used = scipy.zeros((NScrapers*per_page))
         # for each set of received files, see if any are better matches to the existing ones
         for t in range(TotalTilesPerNode):
-            trialDistances = pm.compactDistance(TileCompacts[t], compacts)
+            trialDistances = pm.compactDistance(TileCompacts[t], compacts)*scipy.power(UsedPenaltyFactor, used)
             i = scipy.argmin(trialDistances)
-            #print "P{}: at tile {} found minimum distance to be {} at index {}, photo id {}".format(rank, t, trialDistances[i], i, ids[i])
+            #print "P{}: at tile {} found minimum distance to be {} at index {}".format(rank, t, trialDistances[i], i)
             if trialDistances[i] < distances[t]:
-                whichSources[t] = ids[i]
+                used[i]+= 1
                 distances[t] = trialDistances[i]
-                #trialDistances[i]*= (1+UsedPenalty) # add a penalty to an image that has already been used BUT NOT LIKE THIS!
                 tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
-                #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
         #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
-        #print "P{}: placed photos: ".format(rank), whichSources
         print "P{}: < placing".format(rank)
             
         #print "P{}: finalArr has shape ".format(rank), finalArr.shape
