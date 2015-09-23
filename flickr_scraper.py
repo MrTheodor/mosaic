@@ -53,23 +53,23 @@ class FlickrScraper(object):
     def fetchFileData(self, url, filename=None):
         arr = None
         while arr is None:
-            try:
-                imgdata = urllib.urlopen(url).read()
-                im = Image.open(StringIO.StringIO(imgdata))
-                arr = self.imageToArray(im)
-            except:
-                arr = None
+#            try:
+#                imgdata = urllib.urlopen(url).read()
+#                im = Image.open(StringIO.StringIO(imgdata))
+#                arr = self.imageToArray(im)
+#            except:
+#                arr = None
+#            
             
-            
-            # try:
-            #     if (filename == None):
-            #         im = Image.open(urllib.urlretrieve(url)[0])
-            #     else:
-            #         im = Image.open(urllib.urlretrieve(url, filename)[0])
-            #     arr = self.imageToArray(im)
-            # except:
-            #     # print "******ERRORS*********"
-            #     arr =  None
+             try:
+                 if (filename == None):
+                     im = Image.open(urllib.urlretrieve(url)[0])
+                 else:
+                     im = Image.open(urllib.urlretrieve(url, filename)[0])
+                 arr = self.imageToArray(im)
+             except:
+                 # print "******ERRORS*********"
+                 arr =  None
         return arr
 
 

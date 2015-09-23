@@ -4,13 +4,12 @@
 # By Korneel Dumon, Jakub Krajniak and Keith Myerscough CC BY-NC-SA
 
 
-import sys
+import sys, os, shutil
 sys.path.append('.')
 
 import master
 import placer
 import scraper
-import sys, os, shutil
 from mpi4py import MPI
 
 comm = MPI.COMM_WORLD
@@ -32,12 +31,6 @@ for i in range(len(sys.argv[:])):
 # merge the two parameter dicts into a single dict
 # Keys should be distinct!
 pars = dict(int_pars.items() + string_pars.items())
-
-# create empty save-path
-if not pars['useDB']:
-    if (os.path.exists(pars['savepath'])):
-        shutil.rmtree(pars['savepath'], ignore_errors=True)
-    os.mkdir(pars['savepath'])
     
     
 if rank == 0:

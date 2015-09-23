@@ -95,7 +95,7 @@ def process(pars):
             if trialDistances[i] < distances[t]:
                 whichSources[t] = ids[i]
                 distances[t] = trialDistances[i]
-                trialDistances[i]*= (1+UsedPenalty) # add a penalty to an image that has already been used
+                #trialDistances[i]*= (1+UsedPenalty) # add a penalty to an image that has already been used BUT NOT LIKE THIS!
                 tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
                 #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
         #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
