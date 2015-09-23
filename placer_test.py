@@ -47,7 +47,7 @@ def test_compare_many(placer, target_fn, cnt):
         if (cands[i].ndim == 2):
             csh = cands[i].shape
             cands[i] = scipy.reshape(cands[i], (csh[0], csh[1], 1))
-        
+    
     ID, best_pos, bestCorr = placer.compare(target, cands)
     cand = cands[ID]
     idx = best_pos
@@ -60,6 +60,7 @@ def test_compare_many(placer, target_fn, cnt):
 
 #placer = CorrelationPlacer()
 placer = MinDistPlacer()
+placer.listenForParameters()
 
 # test_img_reconstr(placer)
 # test_compare_two(placer)

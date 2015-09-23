@@ -15,24 +15,33 @@ def surf(Z):
 
 class Placer(object):
     def __init__(self):
-        self.chunkDim = (50,50,3)
-        self.tileDim = (75,75,3)
-        shiftSize = self.tileDim[0]-self.chunkDim[0]+1
-        self.shiftDim = (shiftSize,shiftSize)
+        self.chunkDim = None
+        self.tileDim = None
+        self.shiftDim = None
         self.targetPieces = []
         self.tiles = []
         self.matchMap = {}
-
+    
     def process(self): ## Not tested yet
+        self.listenForParameters()
         self.getTargetChunk()
         while True:
             self.getTiles()
             self.matchPieces()
         self.sendToMaster()
     
+    def listenForParameters(self):
+        self.chunkDim = (50,50,3)
+        self.tileDim = (75,75,3)
+        ratio = float(self.chunkDim[0]) / self.tileDim[0]
+        self.compareTileSize = 75  ## Note: always multiple of 3 for good ratio
+        self.compareChunkSize = int(self.compareTileSize*ratio)
+        shiftSize = self.compareTileSize - self.compareChunkSize + 1
+        self.shiftDim = (shiftSize,shiftSize)
+    
     def getTiles(self):
         raise NotImplementedError
-
+    
     def getTargetChunk(self):
         raise NotImplementedError
     
@@ -65,9 +74,12 @@ class MinDistPlacer(Placer):
         return diff
     
     def compare(self, chunk, tiles):
+        assert (chunk.shape[0] == self.compareChunkSize)
+        
         chunk = scipy.int_(chunk)
-        minDist = (-1,0,99999)
+        minDist = (-1,0,999999)
         for ID, tile in tiles.iteritems():
+            assert (tile.shape[0] == self.compareTileSize)
             tile = scipy.int_(tile)
             diff = scipy.zeros(self.shiftDim)
             colorComps = tile.shape[2] # usually 3 RGB color components
