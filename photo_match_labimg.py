@@ -42,7 +42,6 @@ class photoMatch(object):
         #compare the candidates to the target accordin to some measure
         targetarr = scipy.array(target.reshape((self.totalSize/3, 3)), dtype=int)
         candidatesarr = scipy.array(candidates.reshape((candidates.shape[0], self.totalSize/3, 3)), dtype=int)
-        print scipy.sum((targetarr - candidatesarr)**2*self.weights, axis=1)
         return scipy.sum((targetarr - candidatesarr)**2*self.weights, axis=(1,2))
         
     def formatOutput(self, arr):

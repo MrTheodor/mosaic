@@ -8,6 +8,7 @@ def process(pars):
     NScrapers = pars['NScrapers']
     per_page = pars['per_page']
     iters = pars['iters']
+    UsedPenalty = float(pars['UsedPenalty'])/10.
 
 #%% MPI stuff
     comm = MPI.COMM_WORLD
@@ -17,6 +18,7 @@ def process(pars):
    
 #%% identify oneself
     print "Placer, node {} out of {}".format(rank, size) 
+    print "P{} > init".format(rank) 
 
 #%% receive parameters from the master
     placerPars = comm.recv(source=0, tag=0, status=status)
@@ -30,11 +32,15 @@ def process(pars):
     # derived parameters
     TileSize = 3*scipy.prod(PixPerTile)
     TotalTilesPerNode = scipy.prod(TilesPerNode)
+    print "P{} < init".format(rank) 
 
 #%% Receive its bit of the target image
+    print "P{} > listening".format(rank) 
     NodeArr = comm.recv(source=0, tag=1, status=status)
-    print "P{}: received its part of the image with shape ".format(rank), NodeArr.shape
+    #print "P{}: received its part of the image with shape ".format(rank), NodeArr.shape
+    print "P{} < listening".format(rank) 
 
+    print "P{} > dividing".format(rank) 
 #%% Divide the NodeArr into tiles
     TileArrs = [] # each tile in the image
     whichSources = scipy.zeros((TotalTilesPerNode), dtype=int)
@@ -57,24 +63,28 @@ def process(pars):
         for SplitFinalArr in SplitFinalArrs:
             tileFinalArrs.append(SplitFinalArr)
     #print "P{} shapes of SplitArr and SplitFinalArr: ".format(rank), SplitArr.shape, SplitFinalArr.shape
+    print "P{} < dividing image".format(rank) 
 
 #%% listen to the scrapers for images place
     scraperRes = scipy.empty((per_page, 1+TileSize), dtype='i') # 1+... for the ids!
     for it in range(iters):
+        print "P{}: > listening".format(rank)
         ids  = scipy.zeros((NScrapers*per_page), dtype='i')
         arrs = scipy.zeros((NScrapers*per_page, PixPerTile[0],PixPerTile[1],3), dtype='i')
         for scraper in range(NScrapers): # listen for the NScrapers scrapers, but not necessarilly in that order!
-            print "P{}: waiting for the {}th scraper at iter {}".format(rank, scraper, it)
+            #print "P{}: waiting for the {}th scraper at iter {}".format(rank, scraper, it)
             #print "P{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             comm.Recv([scraperRes, MPI.INT], source=MPI.ANY_SOURCE, tag=2, status=status)
-            print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+            #print "P{}: stuff received with shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
             i0 =  scraper*per_page
 	    i1 = (scraper+1)*per_page
             ids[i0:i1]      = scraperRes[:,0]
             arrs[i0:i1,...] = scraperRes[:,1:].reshape((per_page,PixPerTile[0],PixPerTile[1],3))
 #            arrs[:,:,:,1:] = 0
-            print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[i0], ids[i1-1], it, scraper)
+            #print "P{}: received ids {}--{} at iter {} from the {}th scraper".format(rank, ids[i0], ids[i1-1], it, scraper)
+        print "P{}: < listening".format(rank)
 
+        print "P{}: > placing".format(rank)
         # compact each of the arrays
         compacts = pm.compactRepresentation(arrs)
         # for each set of received files, see if any are better matches to the existing ones
@@ -85,19 +95,23 @@ def process(pars):
             if trialDistances[i] < distances[t]:
                 whichSources[t] = ids[i]
                 distances[t] = trialDistances[i]
+                trialDistances[i]*= (1+UsedPenalty) # add a penalty to an image that has already been used
                 tileFinalArrs[t][:,:,:] = arrs[i,:,:,:]
                 #print "P{}: placed photo {} at position {}".format(rank, whichSources[t],t)
         #print "P{}: last photo vs. target: ".format(rank), arrs[i,:15,:15,:], compacts[i,0,0,:], TileArrs[t][:15,:15,:]
         #print "P{}: placed photos: ".format(rank), whichSources
+        print "P{}: < placing".format(rank)
             
         #print "P{}: finalArr has shape ".format(rank), finalArr.shape
         #print "P{}: finalArr has type ".format(rank), type(finalArr[0,0,0])
+        print "P{}: > sending".format(rank)
         if it > 0:
             isReceived = False
             while isReceived == False:
                 isReceived = MPI.Request.Test(req)
         req = comm.Isend([finalArr, MPI.INT], dest=0, tag=4)
-        print "P{}: sent results after iter {} to Master".format(rank, it)
+        #print "P{}: sent results after iter {} to Master".format(rank, it)
+        print "P{}: < sending".format(rank)
 
 #%% signal completion
     comm.barrier()
