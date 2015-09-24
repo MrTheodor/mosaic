@@ -32,9 +32,9 @@ if rank == 0:
 elif rank < 1+pars['NScrapers']:
     scraper.process(pars)
 elif rank < 1+pars['NScrapers']+pars['NPlacers']:
-    obj = placer.MinDistPlacer(pars)
-    obj.process()
+    placer_obj = placer.MinDistPlacer(pars)
+    placer_obj.process()
+    del placer_obj
     #placer.process(pars)
 
-del obj
 MPI.Finalize()

@@ -46,7 +46,10 @@ class Placer(object):
         for i in range(self.iters):
             self.getTiles()
             self.matchPieces()
-        self.sendToMaster()
+            self.sendToMaster()
+        # --- signal completion
+        self.comm.barrier()
+        print "P{}: reached the end of its career".format(self.rank)
     
     def listenForParameters(self):
         placerPars = self.comm.recv(source=0, tag=0, status=self.status)
@@ -122,7 +125,7 @@ class Placer(object):
         print "P{}: > processing {} target pieces".format(self.rank,
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
-            print "P{}: piece nb {}".format(self.rank, idx)
+            print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
             self.matchMap[idx] = self.compare(piece, self.resizedTiles)
         print "P{}: < processing".format(self.rank)
     
@@ -159,6 +162,7 @@ class Placer(object):
 
         for idx in range(len(tileFinalArrs)):
             match = self.matchMap[idx]
+            print match
             tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
         return finalArr
     
@@ -166,7 +170,7 @@ class Placer(object):
         raise NotImplementedError
 
 
-class MinDistPlacer(Placer):
+class OldMinDistPlacer(Placer):
     def dist(self, arr1, arr2):
         assert (arr1.shape[0] < arr2.shape[0])
         
@@ -182,20 +186,41 @@ class MinDistPlacer(Placer):
         
         chunk = scipy.int_(chunk)
         minDist = (-1,0,999999999)
+        for ID, tile in enumerate(tiles):
+            assert (tile.shape[0] == self.compareTileSize)
+            tile = scipy.int_(tile)
+            diff = scipy.zeros(self.shiftDim)
+            colorComps = tile.shape[2] # usually 3 RGB color components
+            for i in range(colorComps):
+                diff = diff + self.dist(chunk, tile)
+            diff = diff / colorComps
+            min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
+            if (diff[min_idx] < minDist[2]):
+                # print diff[min_idx]
+                minDist = (ID, self.translatePos(min_idx), diff[min_idx])
+        return minDist
 
-        diff = scipy.zeros(self.shiftDim + (len(tiles),))
-        S = self.compareChunkSize
+
+class MinDistPlacer(Placer):
+    def distance(self, target, candidates):
+        self.weights = scipy.ones(3) # might want to change this in Lab space
+        return scipy.sum((candidates - target)**2*self.weights, axis=(1,2,3))
+    
+    def compare(self, chunk, tiles):
+        assert (chunk.shape[0] == self.compareChunkSize)
+        
+        chunk = scipy.int_(chunk)
+        S = chunk.shape[0]
+        # distance will contain the distance for each tile, for each position
+        distances = scipy.zeros((self.shiftDim[0], self.shiftDim[1], tiles.shape[0]))
         for i in range(self.shiftDim[0]):
             for j in range(self.shiftDim[1]):
-                tmp = linalg.norm(abs(chunk - tiles[:,i:i+S,j:j+S]), axis=(1,2))
-                diff[i,j,:] = scipy.mean(tmp, axis=1)
-        min_idx = scipy.unravel_index(scipy.argmin(diff),
-                                      self.shiftDim + (len(tiles),))
-
-        ID = min_idx[2]
-        pos = self.translatePos(min_idx[:2])
-        minDiff = diff[min_idx]
-        return (ID, pos, minDiff)
+                distances[i,j,:] = self.distance(chunk, tiles[:,i:i+S,j:j+S,:])
+        combinedIndex = scipy.unravel_index(scipy.argmin(distances), distances.shape)
+        idx  = combinedIndex[-1]
+        pos  = self.translatePos(combinedIndex[:-1])
+        dist = distances[combinedIndex]
+        return (idx, pos, dist)
 
 class CorrelationPlacer(Placer):
     def compare(self, chunk, tiles):
@@ -362,3 +387,14 @@ def process(pars):
 #%% signal completion
     comm.barrier()
     print "P{}: reached the end of its career".format(rank)
+    
+if __name__ == "__main__":
+    import os 
+    
+    pars = {'NScrapers': 1, 'NPlacers': 1, 'iters': 2, 'per_page': 10, 'MaxTilesVert': 8, 'fidelity': 1, 'poolSize': 20, 'UsedPenalty': 0.}
+
+    placer_obj = Placer(pars)
+
+    imagePaths = os.listdir('test_imgs')    
+    K = 10
+    Images = scipy.zeros(K, )
