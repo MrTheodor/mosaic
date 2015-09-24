@@ -25,7 +25,10 @@ class Placer(object):
         self.targetPieces = []
         self.tiles = []
         self.resizedTiles = []
+        self.mosaic = None
+        self.mosaicTiles = []
         self.matchMap = {}
+        self.tilesToPlace = []
         # --- parameters for communication
         self.NPlacers = pars['NPlacers']
         self.NScrapers = pars['NScrapers']
@@ -43,6 +46,7 @@ class Placer(object):
     def process(self): ## Not tested yet
         self.listenForParameters()
         self.getTargetChunk()
+        self.splitTargetChunk()
         for i in range(self.iters):
             self.getTiles()
             self.matchPieces()
@@ -85,6 +89,19 @@ class Placer(object):
             for splitArr in SplitArrs:
                 self.targetPieces.append(splitArr)
         print "P{}: < dividing image".format(self.rank)
+
+    def splitTargetChunk(self):
+        ## create mosaic data-structure + list of 'pointers' to the tiles in
+        ## this structure
+        self.mosaic = scipy.zeros((self.sliceDim[1]*self.Tiles[1]/self.NPlacers,
+                                self.sliceDim[0]*self.Tiles[0], 3), dtype='i')
+        VertSplitFinalArrs = scipy.split(self.mosaic, self.Tiles[0], axis=1)
+        for VertSplitFinalArr in VertSplitFinalArrs:
+            SplitFinalArrs = scipy.split(VertSplitFinalArr,
+                                         self.Tiles[1]/self.NPlacers, axis=0)
+            for SplitFinalArr in SplitFinalArrs:
+                self.mosaicTiles.append(SplitFinalArr)
+
     
     def getTiles(self):
         print "P{}: > listening".format(self.rank)
@@ -126,7 +143,14 @@ class Placer(object):
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
             print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
-            self.matchMap[idx] = self.compare(piece, self.resizedTiles)
+            bestMatch = self.compare(piece, self.resizedTiles)
+            if (idx in self.matchMap):
+                if (bestMatch[2] < self.matchMap[idx][2]):
+                    self.matchMap[idx] = bestMatch
+                    self.tilesToPlace.append(idx)
+            else:
+                self.matchMap[idx] = bestMatch
+                self.tilesToPlace.append(idx)
         print "P{}: < processing".format(self.rank)
     
     def resizeTiles(self, arrs):
@@ -149,22 +173,19 @@ class Placer(object):
                         pos[1]:pos[1]+self.sliceDim[1],:]
     
     def buildMosaic(self):
-        tileFinalArrs = []            
-        
-        finalArr = scipy.zeros((self.sliceDim[1]*self.Tiles[1]/self.NPlacers,
-                                self.sliceDim[0]*self.Tiles[0], 3), dtype='i')
-        VertSplitFinalArrs = scipy.split(finalArr, self.Tiles[0], axis=1)
-        for VertSplitFinalArr in VertSplitFinalArrs:
-            SplitFinalArrs = scipy.split(VertSplitFinalArr,
-                                         self.Tiles[1]/self.NPlacers, axis=0)
-            for SplitFinalArr in SplitFinalArrs:
-                tileFinalArrs.append(SplitFinalArr)
-
-        for idx in range(len(tileFinalArrs)):
+        ## Writes all 'tilesToPlace' to the final data structure.
+        ## On the first iteration all tiles are placed, on the next iterations
+        ## only some tiles maybe re-placed
+        for idx in range(len(self.mosaicTiles)):
+            if (len(self.tilesToPlace) != 0 and self.tilesToPlace[0] == idx):
+                self.tilesToPlace.pop(0)
+            else:
+                continue
             match = self.matchMap[idx]
             # print match
-            tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
-        return finalArr
+            self.mosaicTiles[idx][...] = self.cutout(self.tiles[match[0]],
+                                                     match[1])
+        return self.mosaic
     
     def compare(self, chunk, tiles):
         raise NotImplementedError
