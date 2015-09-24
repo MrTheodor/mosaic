@@ -3,6 +3,7 @@ from mpi4py import MPI
 from scipy import misc, ndimage, signal
 from numpy import linalg
 from photo_match_labimg import *
+from skimage import color
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -116,8 +117,10 @@ class Placer(object):
             i0 =  scraper*self.per_page
             i1 = (scraper+1)*self.per_page
             self.tiles[i0:i1,...] = scraperRes.reshape((self.per_page,)+self.tileDim)
-        self.resizedTiles = self.resizeTiles(self.tiles)
         print "P{}: < listening".format(self.rank)
+        print "P{}: < resizing received tiles".format(self.rank)
+        self.resizedTiles = self.resizeTiles(self.tiles)
+        print "P{}: < resizing received tiles".format(self.rank)
 
     def sendToMaster(self):
         result = self.buildMosaic()
@@ -153,7 +156,7 @@ class Placer(object):
         N = self.compareTileSize
         result = scipy.zeros((arrs.shape[0], N,N, 3))
         for i in range(arrs.shape[0]):
-            result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
+            result[i,...] = color.rgb2lab(scipy.misc.imresize(arrs[i], (N,N)))
         return result
     
     def translatePos(self, pos):

@@ -1,5 +1,6 @@
 from mpi4py import MPI
 from PIL import Image
+from skimage import color
 import scipy
 import sys, os, shutil
 import photo_match_labimg as photo_match
@@ -68,7 +69,7 @@ def process(pars):
     #TargetImg.crop((0,0,))
     #TargetImg.resize(Pixels)
     CroppedImg = TargetImg.transform((ComparePixels[0],ComparePixels[1]), Image.EXTENT, (CropMargin,0, CropMargin+UnscaledWidth,TargetImg.size[1]))
-    CroppedArr = scipy.array(CroppedImg)
+    CroppedArr = color.rgb2lab(scipy.array(CroppedImg))
 
 #%% send each placer some parameters
     placerPars = {'TilesPerNode': TilesPerNode, 'UnscaledWidth': UnscaledWidth, 
