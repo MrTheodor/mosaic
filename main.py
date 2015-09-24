@@ -1,3 +1,4 @@
+
 #! /usr/bin/env python
 # vim:fenc=utf-8
 #
@@ -38,6 +39,10 @@ if rank == 0:
 elif rank < 1+pars['NScrapers']:
     scraper.process(pars)
 elif rank < 1+pars['NScrapers']+pars['NPlacers']:
-    placer.process(pars)
+    placer_obj = placer.MinDistPlacer(pars)
+    placer_obj.process()
+    del placer_obj
+else:
+    comm.barrier()
 
 MPI.Finalize()
