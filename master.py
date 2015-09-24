@@ -12,6 +12,7 @@ def process(pars):
     NScrapers = pars['NScrapers']
     iters = pars['iters']
     MaxTilesVert = pars['MaxTilesVert']
+    per_page = pars['per_page']
     fidelity = pars['fidelity']
     poolSize = pars['poolSize']
     #tags = ('Minimalism',)
@@ -97,6 +98,13 @@ def process(pars):
 #%% listen to the placers' intermediate results
     tempNodeFinalArr = NodeFinalArrs[0].copy() # for receiving the data, before it is known whence it came
     for it in range(iters):
+        print "M{}: > not listening to the placer to scraper broadcast".format(rank) 
+        dummy_arrs = scipy.zeros((per_page, PixPerTile[1], PixPerTile[0], 3), dtype=scipy.uint8)
+        for scraper in range(1, 1+NScrapers):
+            print "M{}: not listening to scraper {}".format(rank, scraper)
+            comm.Bcast(dummy_arrs, root=scraper)
+        print "M{}: < not listening to the placer to scraper broadcast".format(rank) 
+        
         #print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
         for p in range(NPlacers): # listen for the placers
             print "M{}: > listening for results".format(rank) 

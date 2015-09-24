@@ -110,15 +110,14 @@ class Placer(object):
         scraperRes = scipy.empty((self.per_page,)+self.tileDim, dtype=scipy.uint8)
         self.tiles = scipy.zeros((self.NScrapers*self.per_page,)+self.tileDim,
                                  dtype='i')
-        # listen for the NScrapers scrapers, but not necessarilly in that order!
-        for scraper in range(self.NScrapers):
-            self.comm.Recv(scraperRes, source=MPI.ANY_SOURCE, tag=2,
-                           status=self.status)
-            i0 =  scraper*self.per_page
-            i1 = (scraper+1)*self.per_page
+        # listen for the NScrapers scrapers, in the correct order!
+        for scraper in range(1, 1+self.NScrapers):
+            self.comm.Bcast(scraperRes, root=scraper)
+            i0 = (scraper-1)*self.per_page
+            i1 =  scraper   *self.per_page
             self.tiles[i0:i1,...] = scraperRes.reshape((self.per_page,)+self.tileDim)
         print "P{}: < listening".format(self.rank)
-        print "P{}: < resizing received tiles".format(self.rank)
+        print "P{}: > resizing received tiles".format(self.rank)
         self.resizedTiles = self.resizeTiles(self.tiles)
         print "P{}: < resizing received tiles".format(self.rank)
 
