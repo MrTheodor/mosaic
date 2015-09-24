@@ -101,7 +101,7 @@ def process(pars):
         print "M{}: > not listening to the placer to scraper broadcast".format(rank) 
         dummy_arrs = scipy.zeros((per_page, PixPerTile[1], PixPerTile[0], 3), dtype=scipy.uint8)
         for scraper in range(1, 1+NScrapers):
-            print "M{}: not listening to scraper {}".format(rank, scraper)
+            #print "M{}: not listening to scraper {}".format(rank, scraper)
             comm.Bcast(dummy_arrs, root=scraper)
         print "M{}: < not listening to the placer to scraper broadcast".format(rank) 
         
