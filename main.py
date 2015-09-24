@@ -26,7 +26,6 @@ for i in range(len(sys.argv[:])):
 if pars['per_page'] > 500:
     pars['per_page'] = 500
 
-obj = None
 if rank == 0:
     master.process(pars)
 elif rank < 1+pars['NScrapers']:
@@ -35,6 +34,5 @@ elif rank < 1+pars['NScrapers']+pars['NPlacers']:
     placer_obj = placer.MinDistPlacer(pars)
     placer_obj.process()
     del placer_obj
-    #placer.process(pars)
 
 MPI.Finalize()

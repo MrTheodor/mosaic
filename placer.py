@@ -162,43 +162,12 @@ class Placer(object):
 
         for idx in range(len(tileFinalArrs)):
             match = self.matchMap[idx]
-            print match
+            # print match
             tileFinalArrs[idx][...] = self.cutout(self.tiles[match[0]], match[1])
         return finalArr
     
     def compare(self, chunk, tiles):
         raise NotImplementedError
-
-
-class OldMinDistPlacer(Placer):
-    def dist(self, arr1, arr2):
-        assert (arr1.shape[0] < arr2.shape[0])
-        
-        S = arr1.shape[0]
-        diff = scipy.zeros(self.shiftDim)
-        for i in range(self.shiftDim[0]):
-            for j in range(self.shiftDim[1]):
-                diff[i,j] = linalg.norm(abs(arr1 - arr2[i:i+S,j:j+S]))
-        return diff
-    
-    def compare(self, chunk, tiles):
-        assert (chunk.shape[0] == self.compareChunkSize)
-        
-        chunk = scipy.int_(chunk)
-        minDist = (-1,0,999999999)
-        for ID, tile in enumerate(tiles):
-            assert (tile.shape[0] == self.compareTileSize)
-            tile = scipy.int_(tile)
-            diff = scipy.zeros(self.shiftDim)
-            colorComps = tile.shape[2] # usually 3 RGB color components
-            for i in range(colorComps):
-                diff = diff + self.dist(chunk, tile)
-            diff = diff / colorComps
-            min_idx = scipy.unravel_index(scipy.argmin(diff), self.shiftDim)
-            if (diff[min_idx] < minDist[2]):
-                # print diff[min_idx]
-                minDist = (ID, self.translatePos(min_idx), diff[min_idx])
-        return minDist
 
 
 class MinDistPlacer(Placer):
