@@ -1,12 +1,7 @@
 import scipy
 from mpi4py import MPI
 from scipy import misc, ndimage, signal
-from numpy import linalg
-from photo_match_labimg import *
 from skimage import color
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 def surf(Z):
     fig = plt.figure()
