@@ -63,7 +63,7 @@ def process(pars):
             urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
             #print "S{}: tag {} scraped for page {}".format(rank, tag, page)
         
-        fp = ScraperPool.FetcherPool(fs.fetchFileData, urls, poolSize,  pars['savepath'])
+        fp = ScraperPool.FetcherPool(fs.fetchFileData, urls, poolSize)  
         arrs = fp.executeJobs()
         for i in range(per_page - len(arrs)):
             arrs.append(arrs[-1])
