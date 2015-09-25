@@ -79,28 +79,12 @@ def process(pars):
         #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
         #print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
         print "S{}: > sending".format(rank)
-
-        for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
-            comm.Send(arrs, dest=placer, tag=2)
-        
-        # # wait for the previous iteration to be completed before continuing
-        # isSent = [False]*NPlacers
-        # if it == 0:
-        #     reqs = []
-        #     for placer in range(1+NScrapers, 1+NScrapers+NPlacers):
-        #         #print "S{}: sending to Placer node {} at iter {}".format(rank, placer, it)
-        #         reqs.append(comm.Isend(arrs, dest=placer, tag=2))
-        #         #print "S{}: MPI.Request.Test(reqs[-1])".format(rank), MPI.Request.Test(reqs[-1])
-        # else:
-        #     while not all(isSent):
-        #         time.sleep(.1) # a short wait just to keep the log a bit cleaner when printing
-        #         for p in range(NPlacers):
-        #             if isSent[p] == False:
-        #                 if MPI.Request.Test(reqs[p]):
-        #                     #print "S{}: sending to Placer node {} at iter {}".format(rank, 1+NScrapers+p, it)
-        #                     reqs[p] = comm.Isend(arrs, dest=1+NScrapers+p, tag=2)
-        #                     isSent[p] = True
-        #print "S{}: broadcasted ids at iter {}".format(rank, it)
+        dummy_arrs = scipy.zeros_like(arrs)
+        for scraper in range(1, 1+NScrapers):
+            if scraper == rank: # on the sending end of bcast
+                comm.Bcast(arrs, root=scraper)
+            else: # on the receiving end of bcast (but not really interested in the result)
+                comm.Bcast(dummy_arrs, root=scraper)
         print "S{}: < sending".format(rank)
 
 #%% signal completion

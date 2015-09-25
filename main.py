@@ -33,7 +33,7 @@ for i in range(len(sys.argv[:])):
 # Keys should be distinct!
 pars = dict(int_pars.items() + string_pars.items())
     
-    
+assert size == 1+pars['NScrapers']+pars['NPlacers']   
 if rank == 0:
     master.process(pars)
 elif rank < 1+pars['NScrapers']:

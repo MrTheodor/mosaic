@@ -3,6 +3,7 @@ from mpi4py import MPI
 from scipy import misc, ndimage, signal
 from numpy import linalg
 from photo_match_labimg import *
+from skimage import color
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -109,12 +110,11 @@ class Placer(object):
         scraperRes = scipy.empty((self.per_page,)+self.tileDim, dtype=scipy.uint8)
         self.tiles = scipy.zeros((self.NScrapers*self.per_page,)+self.tileDim,
                                  dtype='i')
-        # listen for the NScrapers scrapers, but not necessarilly in that order!
-        for scraper in range(self.NScrapers):
-            self.comm.Recv(scraperRes, source=MPI.ANY_SOURCE, tag=2,
-                           status=self.status)
-            i0 =  scraper*self.per_page
-            i1 = (scraper+1)*self.per_page
+        # listen for the NScrapers scrapers, in the correct order!
+        for scraper in range(1, 1+self.NScrapers):
+            self.comm.Bcast(scraperRes, root=scraper)
+            i0 = (scraper-1)*self.per_page
+            i1 =  scraper   *self.per_page
             self.tiles[i0:i1,...] = scraperRes.reshape((self.per_page,)+self.tileDim)
         print "P{}: < listening".format(self.rank)
         self.resizedTiles = self.resizeTiles(self.tiles)
@@ -153,7 +153,7 @@ class Placer(object):
         N = self.compareTileSize
         result = scipy.zeros((arrs.shape[0], N,N, 3))
         for i in range(arrs.shape[0]):
-            result[i,...] = scipy.misc.imresize(arrs[i], (N,N))
+            result[i,...] = color.rgb2lab(scipy.misc.imresize(arrs[i], (N,N)))
         return result
     
     def translatePos(self, pos):
