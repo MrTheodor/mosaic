@@ -31,7 +31,7 @@ def process(pars):
         print "M{}: {} is now {}".format(rank, key, value)
 
 #%% identify oneself
-    print "Master, node {} out of {}".format(rank, size) 
+    #print "Master, process {} out of {}".format(rank, size) 
     print "M{}: > init".format(rank) 
 
 #%% initialize the photo matcher
@@ -121,8 +121,10 @@ def process(pars):
         FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
         print "M{}: < writing image at iter {}".format(rank, it) 
     del(pars['savepath'])
-    FinalImg.save('output/final'+'_'.join(['{}{:d}'.format(item, value) for item, value in sorted(pars.items())])+'.png')
+    strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(pars.items())])+'.png'
+    FinalImg.save('output/final'+strrep)
     print "M{}: Final image saved".format(rank)
+    sys.copy('log', 'output/log_'+strrep)
 
 #%% signal completion
     comm.barrier()

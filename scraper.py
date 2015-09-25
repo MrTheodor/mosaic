@@ -20,7 +20,7 @@ def process(pars):
     status = MPI.Status()
    
 #%% identify oneself
-    #print "Scraper, node {} out of {}".format(rank, size) 
+    #print "Scraper, process {} out of {}".format(rank, size) 
     print "S{} > init".format(rank) 
 
 #%% receive parameters from the master
@@ -77,7 +77,7 @@ def process(pars):
         # create an array consiting of the ids and the photo arrays to be sent
         # to the Placers
         #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
-        #print "S{}: broadcasting ids {}--{} to {} Placer nodes".format(rank,ids[0], ids[-1], NPlacers)
+        #print "S{}: broadcasting ids {}--{} to {} Placers".format(rank,ids[0], ids[-1], NPlacers)
         print "S{}: > sending".format(rank)
         dummy_arrs = scipy.zeros_like(arrs)
         for scraper in range(1, 1+NScrapers):
