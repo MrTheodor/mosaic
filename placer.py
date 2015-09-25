@@ -112,9 +112,7 @@ class Placer(object):
             i1 =  scraper   *self.per_page
             self.tiles[i0:i1,...] = scraperRes.reshape((self.per_page,)+self.tileDim)
         print "P{}: < listening".format(self.rank)
-        print "P{}: > resizing received tiles".format(self.rank)
         self.resizedTiles = self.resizeTiles(self.tiles)
-        print "P{}: < resizing received tiles".format(self.rank)
 
     def sendToMaster(self):
         result = self.buildMosaic()
