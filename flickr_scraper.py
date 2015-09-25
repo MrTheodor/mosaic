@@ -55,14 +55,6 @@ class FlickrScraper(object):
     def fetchFileData(self, url, filename=None):
         arr = None
         while arr is None:
-#            try:
-#                imgdata = urllib.urlopen(url).read()
-#                im = Image.open(StringIO.StringIO(imgdata))
-#                arr = self.imageToArray(im)
-#            except:
-#                arr = None
-#            
-            
              try:
                  if (filename == None):
                      im = Image.open(urllib.urlretrieve(url)[0])
