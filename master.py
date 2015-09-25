@@ -16,15 +16,10 @@ def process(pars):
     fidelity = pars['fidelity']
     poolSize = pars['poolSize']
     #tags = ('Minimalism',)
-    tags = ('Gradient','Minimalism','Face')
+    tags = ('Face','Leuven','Belgium','Computer')
     #tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
 
-    # create empty save-path
-    if not pars['useDB']:
-        if (os.path.exists(pars['savepath'])):
-            shutil.rmtree(pars['savepath'], ignore_errors=True)
-        os.mkdir(pars['savepath'])
 
 #%% MPI stuff
     comm = MPI.COMM_WORLD
@@ -42,6 +37,12 @@ def process(pars):
 #%% initialize the photo matcher
     pmPars = {'fidelity': fidelity}
     pm = photo_match.photoMatch(pmPars)
+
+    # create empty save-path
+    if not pars['useDB']:
+        if (os.path.exists(pars['savepath'])):
+            shutil.rmtree(pars['savepath'], ignore_errors=True)
+        os.mkdir(pars['savepath'])
     
 #%% call the scrapers right at the beginning, as it is probably the slowest
     PixPerTile = scipy.array((75,75))
@@ -106,23 +107,19 @@ def process(pars):
         print "M{}: < not listening to the placer to scraper broadcast".format(rank) 
         
         #print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
+        print "M{}: > listening for results".format(rank) 
         for p in range(NPlacers): # listen for the placers
-            print "M{}: > listening for results".format(rank) 
             #print "M{}: NodeFinalArrs[{}] has shape ".format(rank, placer), NodeFinalArrs[placer].shape
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
             comm.Recv([tempNodeFinalArr, MPI.INT], source=MPI.ANY_SOURCE, tag=4, status=status)
             placer = status.Get_source()
             NodeFinalArrs[placer-(1+NScrapers)][:,:,:] = tempNodeFinalArr
-            print "M{}: < listening for results".format(rank) 
+        print "M{}: < listening for results".format(rank) 
             
-            print "M{}: > writing image".format(rank) 
-            #print "M{}: placer {} results at iter {}".format(rank, placer, it)
-            #print "M{}: type of FinalArr is ".format(rank), type(FinalArr[0,0,0])
-            FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
-            FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
-            #FinalImg.save('output/mosaic_{}_{}.png'.format(it,p)) # for more output images
-            #print "M{}: Image saved after iter {} and {}th  placer {}".format(rank, it, p, placer)
-            print "M{}: < writing image at iter {}".format(rank, it) 
+        print "M{}: > writing image".format(rank) 
+        FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
+        FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
+        print "M{}: < writing image at iter {}".format(rank, it) 
     del(pars['savepath'])
     FinalImg.save('output/final'+'_'.join(['{}{:d}'.format(item, value) for item, value in sorted(pars.items())])+'.png')
     print "M{}: Final image saved".format(rank)
