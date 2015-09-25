@@ -1,11 +1,11 @@
 #!/bin/bash
-#PBS -l nodes=8:ppn=4,cput=11:10:00,walltime=11:10:00 
+#PBS -l nodes=7:ppn=4,cput=11:10:00,walltime=11:10:00 
 #node1+node2+node3+node4+node5
 # execute with "qsub mosaic.pbs"
 
 cd $PBS_O_WORKDIR
 
-mpiexec -np 16 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 4 NPlacers 11 per_page 500 iters 10 MaxTilesVert 40 fidelity 15 &> log
-#mpiexec -np 5 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 2 NPlacers 2 per_page 10 iters 2 MaxTilesVert 16 fidelity 1 &> log
+#mpiexec -np 30 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 7 NPlacers 20 per_page 100 iters 10 MaxTilesVert 40 fidelity 9 &> log
+mpiexec -np 5 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 2 NPlacers 2 per_page 10 iters 9 MaxTilesVert 16 fidelity 9 &> log
 #mpiexec -np 3 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 1 NPlacers 1 per_page 5 iters 2 MaxTilesVert 10 fidelity 3 poolSize 10 &> log
 #mpiexec -np 41 -machinefile $PBS_NODEFILE -timestamp-output python main.py NScrapers 20 NPlacers 20 per_page 500 iters 3 MaxTilesVert 40 fidelity 9 poolSize 50 &> log
