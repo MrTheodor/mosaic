@@ -124,7 +124,7 @@ def process(pars):
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(pars.items())])+'.png'
     FinalImg.save('output/final'+strrep)
     print "M{}: Final image saved".format(rank)
-    sys.copy('log', 'output/log_'+strrep)
+    shutil.copy('log', 'output/log_'+strrep)
 
 #%% signal completion
     comm.barrier()
