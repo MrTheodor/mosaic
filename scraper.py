@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from mpi4py import MPI
+import plogger
 import flickr_scraper
 from PIL import Image
 import scipy, time, os
@@ -18,7 +19,10 @@ def process(pars):
     rank = comm.Get_rank()
     size = comm.Get_size()
     status = MPI.Status()
-   
+
+#%% initiate plogger   
+    execfile('params.par')
+    logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
 #%% identify oneself
     #print "Scraper, process {} out of {}".format(rank, size) 
     print "S{} > init".format(rank) 
