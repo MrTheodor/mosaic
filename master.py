@@ -52,8 +52,9 @@ def process(pars):
 	comm.send(scraperPars, dest=scraper, tag=0)
 
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
-    
-    TargetImg = Image.open('./Matilda.JPG')
+
+    TargetImg = Image.open('./files/doesnotmatter.jpg')
+    #TargetImg = Image.open('./Matilda.JPG')
     #TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
     #TargetImg = Image.open('./korneel_test.jpg')
     TargetSize = TargetImg.size
@@ -119,9 +120,10 @@ def process(pars):
         print "M{}: > writing image".format(rank) 
         FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
         FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
-        print "M{}: < writing image at iter {}".format(rank, it) 
-    del(pars['savepath'])
-    FinalImg.save('output/final'+'_'.join(['{}{:d}'.format(item, value) for item, value in sorted(pars.items())])+'.png')
+        print "M{}: < writing image at iter {}".format(rank, it)
+    writepars = pars.copy()
+    del(writepars['savepath'])
+    FinalImg.save('output/final'+'_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])+'.png')
     print "M{}: Final image saved".format(rank)
 
 #%% signal completion
