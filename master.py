@@ -160,6 +160,7 @@ def process(pars, data=None):
         s = smtplib.SMTP('mail4.cs.kuleuven.be')
         s.sendmail('korneel.dumon@cs.kuleuven.be', [msg['To']], msg.as_string())
         s.quit()
+        logger.emit_finished(final_filename)
     
 #%% signal completion
     logger.write('Finished', status=plogger.FINISHED)
