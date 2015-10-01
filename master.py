@@ -9,7 +9,7 @@ import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 
-execfile('../mosaic_gui/daemon/params.par')
+execfile('./params.par')
 
 def process(pars, data=None):   
         

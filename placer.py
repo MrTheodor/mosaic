@@ -4,7 +4,7 @@ from mpi4py import MPI
 from scipy import misc, ndimage, signal
 from skimage import color
 
-execfile('../mosaic_gui/daemon/params.par')
+execfile('./params.par')
 
 def surf(Z):
     fig = plt.figure()

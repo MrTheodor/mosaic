@@ -7,7 +7,7 @@ import scipy, time, os
 
 import ScraperPool
 
-execfile('../mosaic_gui/daemon/params.par')
+execfile('./params.par')
 
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
