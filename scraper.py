@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from mpi4py import MPI
-#import plogger
+import plogger
 import flickr_scraper
 from PIL import Image
 import scipy, time, os
 
 import ScraperPool
+
+execfile('../mosaic_gui/daemon/params.par')
 
 def process(pars):
 #%% load the parameters that CAN be specified from the command line
@@ -21,12 +23,13 @@ def process(pars):
     status = MPI.Status()
 
 #%% initiate plogger   
-    execfile('../mosaic_gui/params.par')
+    #execfile('../mosaic_gui/daemon/params.par')
     logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
 
 #%% identify oneself
     ##print "Scraper, process {} out of {}".format(rank, size) 
     #print "S{} > init".format(rank) 
+    logger.write('Initializing', status=plogger.INIT)
 
 #%% receive parameters from the master
     scraperPars = comm.recv(source=0, tag=0, status=status)
@@ -54,7 +57,7 @@ def process(pars):
         ##print "S{}: will search for page {} of tag {}".format(rank, page, tag)
 
         #print "S{}: > downloading".format(rank)
-        logger.write('Downloading images', status=DOWNLOAD)
+        logger.write('Downloading images', status=plogger.DOWNLOAD)
         # this will represent the how manyth page this will be IN TOTAL FOR ALL THREADS
         totalpage = it*NScrapers + rank-1
         if pars['useDB']:
@@ -85,7 +88,7 @@ def process(pars):
         ##print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
         ##print "S{}: broadcasting ids {}--{} to {} Placers".format(rank,ids[0], ids[-1], NPlacers)
         #print "S{}: > sending".format(rank)
-        logger.write('Sending to placers', status=SENDING)
+        logger.write('Sending to placers', status=plogger.SENDING)
         dummy_arrs = scipy.zeros_like(arrs)
         for scraper in range(1, 1+NScrapers):
             if scraper == rank: # on the sending end of bcast

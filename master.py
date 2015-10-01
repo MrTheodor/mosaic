@@ -9,6 +9,8 @@ import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 
+execfile('../mosaic_gui/daemon/params.par')
+
 def process(pars, data=None):   
         
 #%% load the parameters that CAN be specified from the command line
@@ -34,17 +36,17 @@ def process(pars, data=None):
     status = MPI.Status()
 
 #%% initiate plogger   
-    execfile('../mosaic_gui/params.par')
+    #execfile('../mosaic_gui/daemon/params.par')
     logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
 
 #%% print the values of those parameters that CAN be specified via the command line
-    for key, value in pars.iteritems():
+    #for key, value in pars.iteritems():
         #print "M{}: {} is now {}".format(rank, key, value)
 
 #%% identify oneself
     #print "Master, process {} out of {}".format(rank, size)
     #print "M{}: > init".format(rank) 
-    logger.write('Initializing', status=INIT)
+    logger.write('Initializing', status=plogger.INIT)
 
 #%% initialize the photo matcher
     pmPars = {'fidelity': fidelity}
@@ -121,7 +123,7 @@ def process(pars, data=None):
         
         #print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
         #print "M{}: > listening for results".format(rank) 
-        logger.write('Listening for placers', status=RECEIVING)
+        logger.write('Listening for placers', status=plogger.RECEIVING)
         for p in range(NPlacers): # listen for the placers
             #print "M{}: NodeFinalArrs[{}] has shape ".format(rank, placer), NodeFinalArrs[placer].shape
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])

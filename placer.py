@@ -1,8 +1,10 @@
 import scipy
-#import plogger
+import plogger
 from mpi4py import MPI
 from scipy import misc, ndimage, signal
 from skimage import color
+
+execfile('../mosaic_gui/daemon/params.par')
 
 def surf(Z):
     fig = plt.figure()
@@ -37,25 +39,25 @@ class Placer(object):
         size = self.comm.Get_size()
         self.status = MPI.Status()
         # -- initiate the plogger
-        execfile('../mosaic_gui/params.par')
+        #execfile('../mosaic_gui/daemon/params.par')
         self.logger = plogger.PLogger(self.rank, host_url=LOGGER_HOST)
         # --- identify oneself
         #print "Placer, process {} out of {}".format(self.rank, size) 
 
     def process(self): ## Not tested yet
-        self.logger.write('Initializing', status=INIT)
+        self.logger.write('Initializing', status=plogger.INIT)
         self.listenForParameters()
         self.getTargetChunk()
         self.splitTargetChunk()
         for i in range(self.iters):
-            self.logger.write('Listening for scrapers', status=RECEIVING)
+            self.logger.write('Listening for scrapers', status=plogger.RECEIVING)
             self.getTiles()
-            self.logger.write('Matching pieces', status=MATCHING)
+            self.logger.write('Matching pieces', status=plogger.MATCHING)
             self.matchPieces()
-            self.logger.write('Sending to master', status=SENDING)
+            self.logger.write('Sending to master', status=plogger.SENDING)
             self.sendToMaster()
         # --- signal completion
-        self.logger.write('Done for this iteration', status=IDLE)
+        self.logger.write('Done for this iteration', status=plogger.IDLE)
         self.comm.barrier()
         #print "P{}: reached the end of its career".format(self.rank)
     
@@ -138,8 +140,7 @@ class Placer(object):
         return img
     
     def matchPieces(self):
-        #print "P{}: > processing {} target pieces".format(self.rank,
-                                                        len(self.targetPieces))
+        #print "P{}: > processing {} target pieces".format(self.rank,len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
             #print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
             bestMatch = self.compare(piece, self.resizedTiles)
