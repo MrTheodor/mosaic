@@ -98,59 +98,6 @@ def process(pars):
         #print "S{}: < sending".format(rank)
 
 #%% signal completion
+    logger.write('Done for this mosaic', status=plogger.FINISHED)
     comm.barrier()
     #print "S{}: reached the end of its career".format(rank)
-#%%
-if __name__=="__main__":
-    import photo_match_tinyimg as photo_match
-    from matplotlib import pyplot as plt
-    plt.close('all')
-	
-    #print "testing the scraper Pool"
-    M = 2
-    N = 10
-    per_page = M*M
-    rank = 1
-    NScrapers = 1
-    tag = 'Brugge'
-
-    fs = flickr_scraper.flickrScraper()
-    
-    #
-    urls = fs.scrapeTag(tag, per_page, page=0) 
-    #print "tag {} scraped for iter {}".format(tag, 0)
-
-    poolsize = 20
-    fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
-                     poolsize)
-    arrvs = fp.executeJobs()
-    arrvs = scipy.concatenate(arrvs, axis=0)
-    CandidateArrs = arrvs.reshape((len(arrvs),75,75,3))
-    
-    TargetImg = Image.open('KWM24495.JPG')
-    TargetArr = scipy.array(TargetImg)
-#    Arr1 = Arr1[:75,:350,:]
-    TargetArrs = TargetArr.reshape((scipy.insert(Arr1.shape,0,1)))
-    
-    plt.figure(1)
-    plt.imshow(TargetArr, interpolation='none')
-#%%
-    for i in range(len(arrs)):
-        plt.figure(2)
-        plt.subplot(M,M,i+1)
-        plt.imshow(arrs[i].reshape((75,75,3)), interpolation='none')
-    
-    n = 0
-    for N in [2]:#[1,2,3,5,10,20,50]:
-        n+= 1
-        
-        pm = photo_match.photoMatch({'fidelity': N})
-        TargetCompacts = pm.compactRepresentation(TargetArrs)
-        CandidateCompacts= pm.compactRepresentation(CandidateArrs)
-            
-        
-        distances = pm.compactDistance(TargetCompacts, CandidateCompacts)
-        imin = scipy.argmin(distances)
-        #print imin
-    
-    

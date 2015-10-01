@@ -45,7 +45,7 @@ class Placer(object):
         #print "Placer, process {} out of {}".format(self.rank, size) 
 
     def process(self): ## Not tested yet
-        self.logger.write('Initializing', status=plogger.INIT)
+        self.logger.write('Initializing', status=plogger.IDLE)
         self.listenForParameters()
         self.getTargetChunk()
         self.splitTargetChunk()
@@ -57,7 +57,7 @@ class Placer(object):
             self.logger.write('Sending to master', status=plogger.SENDING)
             self.sendToMaster()
         # --- signal completion
-        self.logger.write('Done for this iteration', status=plogger.IDLE)
+        self.logger.write('Done for this mosaic', status=plogger.FINISHED)
         self.comm.barrier()
         #print "P{}: reached the end of its career".format(self.rank)
     
