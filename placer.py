@@ -36,7 +36,7 @@ class Placer(object):
         size = self.comm.Get_size()
         self.status = MPI.Status()
         # --- identify oneself
-        print "Placer, node {} out of {}".format(self.rank, size) 
+        #print "Placer, process {} out of {}".format(self.rank, size) 
         print "P{} > init".format(self.rank)
     
     def process(self): ## Not tested yet
@@ -133,7 +133,7 @@ class Placer(object):
         print "P{}: > processing {} target pieces".format(self.rank,
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
-            print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
+            #print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
             bestMatch = self.compare(piece, self.resizedTiles)
             if (idx in self.matchMap):
                 if (bestMatch[2] < self.matchMap[idx][2]):
