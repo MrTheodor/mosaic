@@ -4,8 +4,11 @@ from skimage import color
 import scipy
 import sys, os, shutil
 import photo_match_labimg as photo_match
+import smtplib
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
 
-def process(pars):   
+def process(pars, data=None):   
         
 #%% load the parameters that CAN be specified from the command line
     NPlacers = pars['NPlacers']
@@ -15,12 +18,14 @@ def process(pars):
     per_page = pars['per_page']
     fidelity = pars['fidelity']
     poolSize = pars['poolSize']
-    #tags = ('Minimalism',)
-    tags = ('Face','Leuven','Belgium','Computer')
-    #tags = ('Bussum','Football','PSV','Minimalism','urbex')
 
-
-
+    if (data != None):
+        tags = data['search'].split(', ')
+    else:
+        #tags = ('Minimalism',)
+        tags = ('Face','Leuven','Belgium','Computer')
+        #tags = ('Bussum','Football','PSV','Minimalism','urbex')
+    
 #%% MPI stuff
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -124,10 +129,26 @@ def process(pars):
     writepars = pars.copy()
     del(writepars['savepath'])
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])
-    FinalImg.save('output/final'+strrep+'.png')
+    final_filename = 'output/final'+strrep+'.png'
+    FinalImg.save(final_filename)
     print "M{}: Final image saved".format(rank)
     shutil.copy('log', 'output/log_'+strrep)
 
+    # email result
+    if (data != None):
+        msg = MIMEMultipart()
+        msg['Subject'] = 'KU Leuven openbedrijvendag : uw mozaiek'
+        msg['From'] = 'superpi@cs.kuleuven.be'
+        msg['To'] = data['email']
+        fp = open(final_filename, 'rb')
+        img = MIMEImage(fp.read())
+        fp.close()
+        msg.attach(img)
+        
+        s = smtplib.SMTP('mail4.cs.kuleuven.be')
+        s.sendmail('korneel.dumon@cs.kuleuven.be', [msg['To']], msg.as_string())
+        s.quit()
+    
 #%% signal completion
     comm.barrier()
     print "M{}: reached the end of its career".format(rank)

@@ -1,5 +1,5 @@
 import scipy
-import plogger
+#import plogger
 from mpi4py import MPI
 from scipy import misc, ndimage, signal
 from skimage import color
@@ -37,8 +37,8 @@ class Placer(object):
         size = self.comm.Get_size()
         self.status = MPI.Status()
         # -- initiate the plogger
-        execfile('params.par')
-        logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
+        #execfile('params.par')
+        #logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
         # --- identify oneself
         #print "Placer, process {} out of {}".format(self.rank, size) 
         print "P{} > init".format(self.rank)
