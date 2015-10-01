@@ -142,6 +142,7 @@ def process(pars, data=None):
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])
     final_filename = 'output/final'+strrep+'.png'
     FinalImg.save(final_filename)
+    os.chmod(final_filename, 0744)
     print "M{}: Final image saved".format(rank)
 
     shutil.copy('log', 'output/log_'+strrep)
