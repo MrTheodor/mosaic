@@ -124,7 +124,7 @@ def process(pars):
     writepars = pars.copy()
     del(writepars['savepath'])
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])
-    FinalImg.save('output/final'+strrep)
+    FinalImg.save('output/final'+strrep+'.png')
     print "M{}: Final image saved".format(rank)
     shutil.copy('log', 'output/log_'+strrep)
 
