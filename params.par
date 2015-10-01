@@ -1,0 +1,4 @@
+SNAPSHOT="/home/pi/mosaic_gui/daemon/files/snapshot.jpg"
+SMTP_SERVER="mail4.cs.kuleuven.be"
+SEND_FROM="korneel.dumon@cs.kuleuven.be"
+LOGGER_HOST="http://superpi.cs.kuleuven.be:5050/"
