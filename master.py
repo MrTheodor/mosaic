@@ -1,4 +1,5 @@
 from mpi4py import MPI
+import plogger
 from PIL import Image
 from skimage import color
 import scipy
@@ -26,13 +27,19 @@ def process(pars):
     rank = comm.Get_rank()
     size = comm.Get_size()
     status = MPI.Status()
+
+#%% initiate plogger   
+    execfile('../mosaic_gui/params.par')
+    logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
+
 #%% print the values of those parameters that CAN be specified via the command line
     for key, value in pars.iteritems():
-        print "M{}: {} is now {}".format(rank, key, value)
+        #print "M{}: {} is now {}".format(rank, key, value)
 
 #%% identify oneself
-    #print "Master, process {} out of {}".format(rank, size) 
-    print "M{}: > init".format(rank) 
+    #print "Master, process {} out of {}".format(rank, size)
+    #print "M{}: > init".format(rank) 
+    logger.write('Initializing', status=INIT)
 
 #%% initialize the photo matcher
     pmPars = {'fidelity': fidelity}
@@ -79,9 +86,9 @@ def process(pars):
                   'Tiles': Tiles, 'pm': pm, 'iters': iters, 'PixPerTile': PixPerTile, 'ComparePixPerTile' : ComparePixPerTile}
     for placer in range(NPlacers):
         comm.send(placerPars, dest=1+NScrapers+placer, tag=0)
-    print "M{}: < init".format(rank) 
+    #print "M{}: < init".format(rank) 
     
-    print "M{}: > dividing image".format(rank) 
+    #print "M{}: > dividing image".format(rank) 
 #%% reduce CroppedArr to NPlacers NodeArrs
     NodeArrs = scipy.split(CroppedArr, NPlacers, axis=0) 
 
@@ -94,40 +101,41 @@ def process(pars):
     FinalArr = scipy.zeros((TargetChunkPixels[1], TargetChunkPixels[0], 3), dtype='i')
     # FinalArr = scipy.zeros((Tiles[1]*PixPerTile[1], Tiles[0]*PixPerTile[0], 3), dtype='i')
     NodeFinalArrs = scipy.split(FinalArr, NPlacers, axis=0)
-    print "M{}: < dividing image".format(rank) 
+    #print "M{}: < dividing image".format(rank) 
     
 
 #%% listen to the placers' intermediate results
     tempNodeFinalArr = NodeFinalArrs[0].copy() # for receiving the data, before it is known whence it came
     for it in range(iters):
-        print "M{}: > not listening to the placer to scraper broadcast".format(rank) 
+        #print "M{}: > not listening to the placer to scraper broadcast".format(rank) 
         dummy_arrs = scipy.zeros((per_page, PixPerTile[1], PixPerTile[0], 3), dtype=scipy.uint8)
         for scraper in range(1, 1+NScrapers):
             #print "M{}: not listening to scraper {}".format(rank, scraper)
             comm.Bcast(dummy_arrs, root=scraper)
-        print "M{}: < not listening to the placer to scraper broadcast".format(rank) 
+        #print "M{}: < not listening to the placer to scraper broadcast".format(rank) 
         
         #print "M{}: now listening for placer results at iter {} out of {}".format(rank, it, iters)
-        print "M{}: > listening for results".format(rank) 
+        #print "M{}: > listening for results".format(rank) 
+        logger.write('Listening for placers', status=RECEIVING)
         for p in range(NPlacers): # listen for the placers
             #print "M{}: NodeFinalArrs[{}] has shape ".format(rank, placer), NodeFinalArrs[placer].shape
             #print "M{}: NodeFinalArrs[{}] has type ".format(rank, placer), type(NodeFinalArrs[placer][0,0,0])
             comm.Recv([tempNodeFinalArr, MPI.INT], source=MPI.ANY_SOURCE, tag=4, status=status)
             placer = status.Get_source()
             NodeFinalArrs[placer-(1+NScrapers)][:,:,:] = tempNodeFinalArr
-        print "M{}: < listening for results".format(rank) 
+        #print "M{}: < listening for results".format(rank) 
             
-        print "M{}: > writing image".format(rank) 
+        #print "M{}: > writing image".format(rank) 
         FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
         FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
-        print "M{}: < writing image at iter {}".format(rank, it)
+        #print "M{}: < writing image at iter {}".format(rank, it)
     writepars = pars.copy()
     del(writepars['savepath'])
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])
     FinalImg.save('output/final'+strrep+'.png')
-    print "M{}: Final image saved".format(rank)
+    #print "M{}: Final image saved".format(rank)
     shutil.copy('log', 'output/log_'+strrep)
 
 #%% signal completion
     comm.barrier()
-    print "M{}: reached the end of its career".format(rank)
+    #print "M{}: reached the end of its career".format(rank)

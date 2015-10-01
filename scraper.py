@@ -21,15 +21,16 @@ def process(pars):
     status = MPI.Status()
 
 #%% initiate plogger   
-    execfile('params.par')
+    execfile('../mosaic_gui/params.par')
     logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
+
 #%% identify oneself
-    #print "Scraper, process {} out of {}".format(rank, size) 
-    print "S{} > init".format(rank) 
+    ##print "Scraper, process {} out of {}".format(rank, size) 
+    #print "S{} > init".format(rank) 
 
 #%% receive parameters from the master
     scraperPars = comm.recv(source=0, tag=0, status=status)
-    #print "S{}: received params from Master".format(rank)
+    ##print "S{}: received params from Master".format(rank)
     tags = scraperPars['tags']
     poolSize = scraperPars['poolSize']
     
@@ -41,7 +42,7 @@ def process(pars):
         fs = flickr_scraper.FlickrScraperDummy(pars['savepath'])
     else:
         fs = flickr_scraper.FlickrScraper()
-    print "S{} < init".format(rank) 
+    #print "S{} < init".format(rank) 
     
 #%% outer iteration
     for it in range(iters):
@@ -50,9 +51,10 @@ def process(pars):
         # then compute which page of which tag to search for
         (page, tagid) = divmod(totalpage, len(tags))
         tag = tags[tagid]
-        #print "S{}: will search for page {} of tag {}".format(rank, page, tag)
+        ##print "S{}: will search for page {} of tag {}".format(rank, page, tag)
 
-        print "S{}: > downloading".format(rank)
+        #print "S{}: > downloading".format(rank)
+        logger.write('Downloading images', status=DOWNLOAD)
         # this will represent the how manyth page this will be IN TOTAL FOR ALL THREADS
         totalpage = it*NScrapers + rank-1
         if pars['useDB']:
@@ -63,44 +65,45 @@ def process(pars):
             # then compute which page of which tag to search for
             (page, tagid) = divmod(totalpage, len(tags))
             tag = tags[tagid]
-            #print "S{}: will search for page {} of tag {}".format(rank, page, tag)
+            ##print "S{}: will search for page {} of tag {}".format(rank, page, tag)
             urls = fs.scrapeTag(tag, per_page, page=page, sort='interestingness-desc') 
-            #print "S{}: tag {} scraped for page {}".format(rank, tag, page)
+            ##print "S{}: tag {} scraped for page {}".format(rank, tag, page)
         
         fp = ScraperPool.FetcherPool(fs.fetchFileData, urls, poolSize)  
         arrs = fp.executeJobs()
         for i in range(per_page - len(arrs)):
             arrs.append(arrs[-1])
-        #print "S{}: arrs has length {}".format(rank, len(arrs))
-#        print "S{}: files fetched for iter {}".format(rank, it)
+        ##print "S{}: arrs has length {}".format(rank, len(arrs))
+#        #print "S{}: files fetched for iter {}".format(rank, it)
         
-        print "S{}: < downloading".format(rank)
+        #print "S{}: < downloading".format(rank)
 
         # concatenate the arrs list into a 4D matrix
         arrs = scipy.concatenate(arrs, axis=0)
         # create an array consiting of the ids and the photo arrays to be sent
         # to the Placers
-        #print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
-        #print "S{}: broadcasting ids {}--{} to {} Placers".format(rank,ids[0], ids[-1], NPlacers)
-        print "S{}: > sending".format(rank)
+        ##print "S{}: scraperRes has shape and type ".format(rank), scraperRes.shape, type(scraperRes[0,0])
+        ##print "S{}: broadcasting ids {}--{} to {} Placers".format(rank,ids[0], ids[-1], NPlacers)
+        #print "S{}: > sending".format(rank)
+        logger.write('Sending to placers', status=SENDING)
         dummy_arrs = scipy.zeros_like(arrs)
         for scraper in range(1, 1+NScrapers):
             if scraper == rank: # on the sending end of bcast
                 comm.Bcast(arrs, root=scraper)
             else: # on the receiving end of bcast (but not really interested in the result)
                 comm.Bcast(dummy_arrs, root=scraper)
-        print "S{}: < sending".format(rank)
+        #print "S{}: < sending".format(rank)
 
 #%% signal completion
     comm.barrier()
-    print "S{}: reached the end of its career".format(rank)
+    #print "S{}: reached the end of its career".format(rank)
 #%%
 if __name__=="__main__":
     import photo_match_tinyimg as photo_match
     from matplotlib import pyplot as plt
     plt.close('all')
 	
-    print "testing the scraper Pool"
+    #print "testing the scraper Pool"
     M = 2
     N = 10
     per_page = M*M
@@ -112,7 +115,7 @@ if __name__=="__main__":
     
     #
     urls = fs.scrapeTag(tag, per_page, page=0) 
-    print "tag {} scraped for iter {}".format(tag, 0)
+    #print "tag {} scraped for iter {}".format(tag, 0)
 
     poolsize = 20
     fp = FetcherPool(fs.fetchFileData, urls[rank-1 : per_page : NScrapers],
@@ -145,6 +148,6 @@ if __name__=="__main__":
         
         distances = pm.compactDistance(TargetCompacts, CandidateCompacts)
         imin = scipy.argmin(distances)
-        print imin
+        #print imin
     
     
