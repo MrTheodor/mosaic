@@ -37,27 +37,31 @@ class Placer(object):
         size = self.comm.Get_size()
         self.status = MPI.Status()
         # -- initiate the plogger
-        #execfile('params.par')
-        #logger = plogger.PLogger(rank, host_url=LOGGER_HOST)
+        execfile('../mosaic_gui/params.par')
+        self.logger = plogger.PLogger(self.rank, host_url=LOGGER_HOST)
         # --- identify oneself
         #print "Placer, process {} out of {}".format(self.rank, size) 
-        print "P{} > init".format(self.rank)
-    
+
     def process(self): ## Not tested yet
+        self.logger.write('Initializing', status=INIT)
         self.listenForParameters()
         self.getTargetChunk()
         self.splitTargetChunk()
         for i in range(self.iters):
+            self.logger.write('Listening for scrapers', status=RECEIVING)
             self.getTiles()
+            self.logger.write('Matching pieces', status=MATCHING)
             self.matchPieces()
+            self.logger.write('Sending to master', status=SENDING)
             self.sendToMaster()
         # --- signal completion
+        self.logger.write('Done for this iteration', status=IDLE)
         self.comm.barrier()
-        print "P{}: reached the end of its career".format(self.rank)
+        #print "P{}: reached the end of its career".format(self.rank)
     
     def listenForParameters(self):
         placerPars = self.comm.recv(source=0, tag=0, status=self.status)
-        print "P{}: received the placer parameters".format(self.rank)
+        #print "P{}: received the placer parameters".format(self.rank)
         self.Tiles         = placerPars['Tiles']
         self.TilesPerNode  = placerPars['TilesPerNode']
         PixPerTile    = placerPars['PixPerTile']
@@ -73,22 +77,22 @@ class Placer(object):
         self.compareChunkSize = int(self.compareTileSize*ratio)
         shiftSize = self.compareTileSize - self.compareChunkSize + 1
         self.shiftDim = (shiftSize,shiftSize)
-        print "P{} < init".format(self.rank) 
+        #print "P{} < init".format(self.rank) 
 
     def getTargetChunk(self):
-        print "P{} > listening".format(self.rank) 
+        #print "P{} > listening".format(self.rank) 
         NodeArr = self.comm.recv(source=0, tag=1, status=self.status)
-        print "P{} < listening".format(self.rank) 
+        #print "P{} < listening".format(self.rank) 
         
         #%% Divide the NodeArr into tiles
-        print "P{} > dividing".format(self.rank) 
+        #print "P{} > dividing".format(self.rank) 
         VertSplitArrs = scipy.split(NodeArr, self.Tiles[0], axis=1)
         for VertSplitArr in VertSplitArrs:
             SplitArrs = scipy.split(VertSplitArr,self.Tiles[1]/self.NPlacers,
                                     axis=0)
             for splitArr in SplitArrs:
                 self.targetPieces.append(splitArr)
-        print "P{}: < dividing image".format(self.rank)
+        #print "P{}: < dividing image".format(self.rank)
 
     def splitTargetChunk(self):
         ## create mosaic data-structure + list of 'pointers' to the tiles in
@@ -104,7 +108,7 @@ class Placer(object):
 
     
     def getTiles(self):
-        print "P{}: > listening".format(self.rank)
+        #print "P{}: > listening".format(self.rank)
         
         scraperRes = scipy.empty((self.per_page,)+self.tileDim, dtype=scipy.uint8)
         self.tiles = scipy.zeros((self.NScrapers*self.per_page,)+self.tileDim,
@@ -115,14 +119,14 @@ class Placer(object):
             i0 = (scraper-1)*self.per_page
             i1 =  scraper   *self.per_page
             self.tiles[i0:i1,...] = scraperRes.reshape((self.per_page,)+self.tileDim)
-        print "P{}: < listening".format(self.rank)
+        #print "P{}: < listening".format(self.rank)
         self.resizedTiles = self.resizeTiles(self.tiles)
 
     def sendToMaster(self):
         result = self.buildMosaic()
-        print "P{}: > sending".format(self.rank)
+        #print "P{}: > sending".format(self.rank)
         self.comm.Send([result, MPI.INT], dest=0, tag=4)
-        print "P{}: < sending".format(self.rank)
+        #print "P{}: < sending".format(self.rank)
         
     def pack(self, img, ID):
         data = scipy.reshape(img, (-1,))
@@ -134,7 +138,7 @@ class Placer(object):
         return img
     
     def matchPieces(self):
-        print "P{}: > processing {} target pieces".format(self.rank,
+        #print "P{}: > processing {} target pieces".format(self.rank,
                                                         len(self.targetPieces))
         for idx, piece in enumerate(self.targetPieces):
             #print "P{}: {}/{}".format(self.rank, idx, len(self.targetPieces))
@@ -146,7 +150,7 @@ class Placer(object):
             else:
                 self.matchMap[idx] = bestMatch
                 self.tilesToPlace.append(idx)
-        print "P{}: < processing".format(self.rank)
+        #print "P{}: < processing".format(self.rank)
     
     def resizeTiles(self, arrs):
         N = self.compareTileSize
@@ -224,7 +228,7 @@ class CorrelationPlacer(Placer):
             corr = corr / colorComps
             max_idx = scipy.unravel_index(scipy.argmax(corr), self.shiftDim)
             if (corr[max_idx] > maxCorr[2]):
-                print corr[max_idx]
+                #print corr[max_idx]
                 maxCorr = (ID, self.translatePos(max_idx), corr[max_idx])
         return maxCorr
     
