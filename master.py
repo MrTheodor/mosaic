@@ -162,6 +162,6 @@ def process(pars, data=None):
         s.quit()
     
 #%% signal completion
-    logger.write('Done for this mosaic', status=plogger.FINISHED)
+    logger.write('Finished', status=plogger.FINISHED)
     comm.barrier()
     #print "M{}: reached the end of its career".format(rank)
