@@ -8,6 +8,7 @@ import photo_match_labimg as photo_match
 import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
+import time
 
 execfile('./params.par')
 
@@ -67,7 +68,7 @@ def process(pars, data=None):
 
     TilesVert = int(MaxTilesVert/NPlacers) * NPlacers
 
-    TargetImg = Image.open('./files/doesnotmatter.jpg')
+    TargetImg = Image.open('./output/doesnotmatter.jpg')
     #TargetImg = Image.open('./Matilda.JPG')
     #TargetImg = Image.open('./rainbow_flag_by_kelly.jpg')
     #TargetImg = Image.open('./korneel_test.jpg')
@@ -133,14 +134,17 @@ def process(pars, data=None):
         #print "M{}: < listening for results".format(rank) 
             
         #print "M{}: > writing image".format(rank) 
+        partial_filename = 'output/mosaic_{}.png'.format(it)
         FinalImg = Image.fromarray(scipy.array(FinalArr, dtype=scipy.uint8), 'RGB')
-        FinalImg.save('output/mosaic_{}.png'.format(it)) # for fewer output images
+        FinalImg.save(partial_filename) # for fewer output images
+        # Notify gui
+        logger.emit_partial(partial_filename)
         #print "M{}: < writing image at iter {}".format(rank, it)
     writepars = pars.copy()
     del(writepars['savepath'])
 
     strrep = '_'.join(['{}{:d}'.format(item, value) for item, value in sorted(writepars.items())])
-    final_filename = 'output/final'+strrep+'.png'
+    final_filename = 'output/final{}_{}.png'.format(strrep, int(time.time()))
     FinalImg.save(final_filename)
     os.chmod(final_filename, 0744)
     print "M{}: Final image saved".format(rank)
@@ -150,8 +154,8 @@ def process(pars, data=None):
     # email result
     if (data != None):
         msg = MIMEMultipart()
-        msg['Subject'] = 'KU Leuven openbedrijvendag : uw mozaiek'
-        msg['From'] = 'superpi@cs.kuleuven.be'
+        msg['Subject'] = "KU Leuven openbedrijvendag - uw mozaiek"
+        msg['From'] = "SuperPi <superpi@cs.kuleuven.be>"
         msg['To'] = data['email']
         fp = open(final_filename, 'rb')
         img = MIMEImage(fp.read())
@@ -159,7 +163,7 @@ def process(pars, data=None):
         msg.attach(img)
         
         s = smtplib.SMTP('mail4.cs.kuleuven.be')
-        s.sendmail('korneel.dumon@cs.kuleuven.be', [msg['To']], msg.as_string())
+        s.sendmail('superpi@cs.kuleuven.be', [msg['To']], msg.as_string())
         s.quit()
         logger.emit_finished(final_filename)
     
