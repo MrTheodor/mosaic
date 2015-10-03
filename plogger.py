@@ -6,6 +6,7 @@
 #
 
 import urllib
+import socket
 
 IDLE = 0
 INIT = 1
@@ -22,6 +23,7 @@ valid_status = [IDLE, INIT, DOWNLOAD, SENDING, RECEIVING, MATCHING, COMPOSING, F
 class PLogger(object):
     def __init__(self, source_rank, initial_status=0, host_url='http://0.0.0.0:5050'):
         self.rank = source_rank
+        self.node = socket.gethostname()
         self.status = 0
         if self.status not in valid_status:
             raise Exception('Invalid status')
@@ -34,13 +36,21 @@ class PLogger(object):
             self.status = status
         if self.status not in valid_status:
             raise Exception('Invalid status {}'.format(status))
-        params = {'source': self.rank, 'message': message, 'status': self.status}
+        params = {'source': self.rank, 'node': self.node, 'message': message, 'status': self.status}
         update_url = self.update_url + urllib.urlencode(params)
         try:
             urllib.urlopen(update_url)
         except IOError:
             pass
         print('{}: {}'.format(self.rank, message))
+
+    def emit_partial(self, filename):
+        params = {'filename': filename}
+        url = '{}/partial/?'.format(self.host_url) + urllib.urlencode(params)
+        try:
+            urllib.urlopen(url)
+        except IOError:
+            pass
 
     def emit_finished(self, filename):
         params = {'filename': filename}
@@ -49,3 +59,8 @@ class PLogger(object):
             urllib.urlopen(url)
         except IOError:
             pass
+
+    def pong(self):
+        """Notify GUI that daemon is alive."""
+        print('{}/pong/'.format(self.host_url))
+        urllib.urlopen('{}/pong/'.format(self.host_url))
