@@ -21,6 +21,13 @@ valid_status = [IDLE, INIT, DOWNLOAD, SENDING, RECEIVING, MATCHING, COMPOSING, F
 
 
 class PLogger(object):
+    """Parallel logger.
+
+    Args:
+        source_rank: The MPI rank of the source of logs.
+        initial_status: The status of the message.
+        host_url: The URL to the web server.
+    """
     def __init__(self, source_rank, initial_status=0, host_url='http://0.0.0.0:5050'):
         self.rank = source_rank
         self.node = socket.gethostname()
@@ -29,7 +36,7 @@ class PLogger(object):
             raise Exception('Invalid status')
         self.update_url = '{}/update_log/?'.format(host_url)
         self.host_url = host_url
-        print('PLogger rank:{}, host_url:{}'.format(source_rank, host_url))
+        print('PLogger node: {}, rank:{}, host_url:{}'.format(self.node, source_rank, host_url))
 
     def write(self, message, status=None):
         if status is not None:

@@ -153,18 +153,26 @@ def process(pars, data=None):
 
     # email result
     if (data != None):
-        msg = MIMEMultipart()
-        msg['Subject'] = "KU Leuven openbedrijvendag - uw mozaiek"
-        msg['From'] = "SuperPi <superpi@cs.kuleuven.be>"
-        msg['To'] = data['email']
-        fp = open(final_filename, 'rb')
-        img = MIMEImage(fp.read())
-        fp.close()
-        msg.attach(img)
+        if len(data['email']) > 0:
+          try:
+            msg = MIMEMultipart()
+            msg['Subject'] = "Opendeurdag Faculteit Wetenschappen - uw mozaiek"
+            msg['From'] = "SuperPi <superpi@cs.kuleuven.be>"
+            msg['To'] = data['email']
+            fp = open(final_filename, 'rb')
+            img = MIMEImage(fp.read())
+            fp.close()
+            img.add_header('Content-Disposition', 'attachment; filename="mosaic.jpeg"')
+            msg.attach(img)
         
-        s = smtplib.SMTP('mail4.cs.kuleuven.be')
-        s.sendmail('superpi@cs.kuleuven.be', [msg['To']], msg.as_string())
-        s.quit()
+            s = smtplib.SMTP('mail4.cs.kuleuven.be')
+            s.sendmail('superpi@cs.kuleuven.be', [msg['To']], msg.as_string())
+            s.quit()
+          except: pass
+
+        logger.emit_finished(final_filename)
+    else:
+        print "Data was None. This should not happen."
         logger.emit_finished(final_filename)
     
 #%% signal completion
